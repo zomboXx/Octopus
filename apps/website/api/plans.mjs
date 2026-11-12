@@ -17,7 +17,7 @@ export function createPlanHandler({model=callModel,now=()=>Date.now(),key=()=>pr
     if(!configured)return send(503,{error:'AI chưa được cấu hình trên máy chủ. Nhóm cần thêm POOL_API_KEY trên Vercel.'});
     const origin=req.headers.origin;
     const deployedOrigin=process.env.OCTOPUS_WEB_ORIGIN || (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`);
-    if(origin && ![deployedOrigin,'http://127.0.0.1:4176','http://127.0.0.1:4178','http://127.0.0.1:4174','http://localhost:4176','http://localhost:4178'].includes(origin))return send(403,{error:'Không nhận yêu cầu từ website này.'});
+    if(origin && ![deployedOrigin,'http://127.0.0.1:4176','http://127.0.0.1:4178','http://127.0.0.1:4174','http://localhost:4174','http://localhost:4176','http://localhost:4178'].includes(origin))return send(403,{error:'Không nhận yêu cầu từ website này.'});
     const supplied=String(req.headers.authorization || '').replace(/^Bearer /,'');
     const expected=betaAccessCode(key());
     if(!/^[A-Za-z0-9_-]{28}$/.test(supplied) || !timingSafeEqual(Buffer.from(supplied),Buffer.from(expected)))return send(401,{error:'Nhập mã thử AI của nhóm. Đây không phải key PoolAI.'});

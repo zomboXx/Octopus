@@ -1,0 +1,10 @@
+*
+!package.json
+!package-lock.json
+!server.mjs
+!api/
+!api/**
+!server/
+!server/**
+!dist/
+!dist/**

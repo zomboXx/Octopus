@@ -13,7 +13,7 @@ function notice(text){const el=document.getElementById('notice');el.textContent=
 document.getElementById('copy-hash').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(document.getElementById('hash-value').textContent);notice('Đã sao chép mã SHA-256.');}catch{notice('Bạn có thể chọn và sao chép mã hiển thị bên dưới.');}});
 const download=document.getElementById('android-download');
 download.addEventListener('click',event=>{if(download.getAttribute('aria-disabled')==='true')event.preventDefault();});
-fetch('/release.json').then(response=>{if(!response.ok)throw new Error('Release unavailable');return response.json();}).then(release=>{
+fetch('./release.json').then(response=>{if(!response.ok)throw new Error('Release unavailable');return response.json();}).then(release=>{
   if(release.bytes>0)document.getElementById('apk-size').textContent=`${Math.round(release.bytes/1048576)} MiB`;
   if(/^[a-f0-9]{64}$/i.test(release.sha256))document.getElementById('hash-value').textContent=release.sha256;
   if(!release.downloadUrl)return;

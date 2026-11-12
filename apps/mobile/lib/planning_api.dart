@@ -4,8 +4,12 @@ import 'brain_store.dart';
 
 class PlanningApi {
   static const baseUrl = String.fromEnvironment('OCTOPUS_API_URL');
+  static const requireBetaCode = bool.fromEnvironment(
+    'OCTOPUS_API_REQUIRE_CODE',
+  );
   bool get configured => baseUrl.isNotEmpty;
-  bool get needsAccessCode => Uri.tryParse(baseUrl)?.scheme == 'https';
+  bool get needsAccessCode =>
+      requireBetaCode || Uri.tryParse(baseUrl)?.scheme == 'https';
   Future<Map<String, dynamic>> draft(
     BrainStore store,
     String request,

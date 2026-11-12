@@ -2,6 +2,10 @@
 
 Repo đã có trang giới thiệu tại `/` và bản trải nghiệm tại `/try/`. Chạy `npm ci` rồi `npm start` trong `apps/website` để xem ở `http://127.0.0.1:4174/`.
 
+## GitHub Pages
+
+[Website công khai](https://zomboxx.github.io/Octopus/) được xuất từ `apps/website/dist/` bằng [workflow Pages](../.github/workflows/pages.yml). Trang công khai hỗ trợ kế hoạch mẫu và tải APK từ GitHub Releases. Xem [hướng dẫn Docker Compose](demo-setup.md) để chạy backend AI cục bộ.
+
 ## Cấu hình Vercel
 
 1. Import repo Octopus, đặt **Root Directory** thành `apps/website` và chọn **Framework Preset** là **Other**. Repo đã khai báo thư mục đầu ra `dist` và rewrite API. [Cấu hình trong repo](../apps/website/vercel.json)

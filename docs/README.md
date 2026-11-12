@@ -2,6 +2,7 @@
 
 | Tài liệu | Nội dung |
 | --- | --- |
+| [Chạy thử cho ban giám khảo](demo-setup.md) | Website công khai, APK, Docker Compose và Android Emulator. |
 | [Hướng dẫn sử dụng](user-guide.md) | Thiết lập app, ghi việc, lập lịch, tập trung, thống kê và widget. |
 | [Kiến trúc](architecture.md) | Cấu trúc mã nguồn, cách Flutter gọi Kotlin và luồng dữ liệu lập lịch. |
 | [Kiểm thử](testing.md) | Kiểm thử tự động, kiểm tra trên Android Emulator và xác nhận bản APK. |

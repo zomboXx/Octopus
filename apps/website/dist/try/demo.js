@@ -86,8 +86,8 @@ function render(resetScroll = false) {
   screen.scrollTop = resetScroll ? 0 : previousScroll;
 }
 function brandArt(kind='icon') {
-  if (kind === 'word') return '<span class="app-wordmark"><img src="/assets/octopus-logo.png" alt="">Octopus</span>';
-  return '<img class="brand-icon" src="/assets/octopus-logo.png" alt="">';
+  if (kind === 'word') return '<span class="app-wordmark"><img src="../assets/octopus-logo.png" alt="">Octopus</span>';
+  return '<img class="brand-icon" src="../assets/octopus-logo.png" alt="">';
 }
 function switchPhone(view) {
   phoneView=view; modal.close();
@@ -239,6 +239,10 @@ function editStudyPreferences(){
   showModal('Nhịp học của bạn',`<form id="study-form"><div class="field-grid"><label class="field">Có thể học từ<input type="time" name="start" value="${timeText(p.startMinute)}" required></label><label class="field">Kết thúc trước<input type="time" name="end" value="${timeText(p.endMinute)}" required></label></div><label class="field">Mỗi phiên<select name="session">${[25,30,45,60,90].map(n=>`<option value="${n}" ${p.sessionMinutes===n?'selected':''}>${n} phút</option>`).join('')}</select></label><label class="field">Quỹ học mỗi ngày (phút)<input type="number" name="daily" min="25" max="480" value="${p.dailyMinutes}" required></label><p class="tiny muted">Lịch AI hỗ trợ 7 ngày tới, múi giờ Việt Nam. Lịch đã xác nhận vẫn được giữ nguyên.</p><p id="form-error" class="form-error" role="alert"></p><button class="button full">Lưu nhịp học</button></form>`);
 }
 function openAI(){
+  if(document.documentElement.hasAttribute('data-static-demo')){
+    showModal('AI beta', '<p class="modal-copy">Bản web công khai hỗ trợ kế hoạch mẫu. Để lập lịch bằng AI, chạy backend Octopus theo hướng dẫn trong repo.</p><button class="button full" data-action="close">Đã hiểu</button>');
+    return;
+  }
   if(!state.commitments.length){showModal('Nhập lịch cố định trước',`<p class="modal-copy">Lưu lịch đi học / đi làm trước khi gọi AI. Bước này giúp tránh trùng giờ và không tốn lượt để hỏi lại thời khóa biểu.</p><button class="button full" data-action="add-fixed">Thêm lịch cố định</button>`);return;}
   if(aiBusy){toast('AI đang tạo kế hoạch. Hãy chờ kết quả trước khi gửi tiếp.');return;}
   if(aiDraft){renderAIDraft();return;}
@@ -254,7 +258,7 @@ async function generateAI(data){
   aiBusy=true;button.disabled=true;button.textContent='Đang sắp xếp kế hoạch…';
   state.profile.lastAIRequest=request;state.profile.learningContext=learningContext;save();
   try{
-    const response=await fetch('/api/plans',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${betaCode}`},body:JSON.stringify(makePlanningRequest(state,request,learningContext)),signal:AbortSignal.timeout(105000)});
+    const response=await fetch('../api/plans',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${betaCode}`},body:JSON.stringify(makePlanningRequest(state,request,learningContext)),signal:AbortSignal.timeout(105000)});
     const result=await response.json();
     if(!response.ok)throw new Error(result.error || 'Chưa tạo được lịch. Hãy thử lại.');
     aiSessions=convertDraft(result);aiDraft=result;
@@ -350,7 +354,7 @@ function activityEditor() {
   showModal('Một việc ngoài màn hình',`<form id="activity-form"><label class="field">Bạn vừa làm gì?<input name="title" placeholder="VD: Một vòng chạy ngoài trời" maxlength="140" required></label><label class="field">Bắt đầu<input name="start" type="datetime-local" value="${localInput(start)}" required></label><label class="field">Kết thúc<input name="end" type="datetime-local" value="${localInput(end)}" required></label><p class="field-hint">Toàn bộ khoảng thời gian phải nằm trong 24 giờ vừa qua. Bản thử lưu riêng tư trên trình duyệt.</p><button type="button" class="text-button" data-action="photo">${icon('plus')} Thêm ảnh minh chứng</button><p id="form-error" class="form-error" role="alert"></p><button class="button full">Lưu hoạt động</button></form>`);
 }
 function profile() {
-  showModal('Hồ sơ của bạn',`<div class="row"><div class="avatar">${esc(state.profile.name.slice(0,1).toUpperCase())}</div><div><strong>${esc(state.profile.name)}</strong><p class="tiny muted">Chế độ khách · bản trải nghiệm web</p></div></div><p class="modal-copy" style="margin-top:16px">${esc(state.profile.goal)}. Dữ liệu chỉ nằm trong trình duyệt này, không liên kết tài khoản Android.</p><div class="stack"><button class="button secondary full" data-action="welcome">Sửa hồ sơ / thử màn chào</button><button class="button secondary full" data-action="widgets">Thêm widget màn hình chính</button><button class="button secondary full" data-action="login">Đăng nhập & lưu tiến trình</button><a class="button full" href="/#download">Khám phá bản Android</a><button class="text-button" data-action="reset">Xóa dữ liệu trải nghiệm</button></div><p class="field-hint" style="margin-top:10px">${storageAvailable?'Đang lưu cục bộ trên trình duyệt.':'Trình duyệt có thể không cho lưu lâu dài.'} Bạn có thể xóa bất cứ lúc nào.</p>`);
+  showModal('Hồ sơ của bạn',`<div class="row"><div class="avatar">${esc(state.profile.name.slice(0,1).toUpperCase())}</div><div><strong>${esc(state.profile.name)}</strong><p class="tiny muted">Chế độ khách · bản trải nghiệm web</p></div></div><p class="modal-copy" style="margin-top:16px">${esc(state.profile.goal)}. Dữ liệu chỉ nằm trong trình duyệt này, không liên kết tài khoản Android.</p><div class="stack"><button class="button secondary full" data-action="welcome">Sửa hồ sơ / thử màn chào</button><button class="button secondary full" data-action="widgets">Thêm widget màn hình chính</button><button class="button secondary full" data-action="login">Đăng nhập & lưu tiến trình</button><a class="button full" href="../#download">Khám phá bản Android</a><button class="text-button" data-action="reset">Xóa dữ liệu trải nghiệm</button></div><p class="field-hint" style="margin-top:10px">${storageAvailable?'Đang lưu cục bộ trên trình duyệt.':'Trình duyệt có thể không cho lưu lâu dài.'} Bạn có thể xóa bất cứ lúc nào.</p>`);
 }
 const actions = {
   limits:openLimits, close:()=>modal.close(), profile,

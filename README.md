@@ -40,6 +40,8 @@ Octopus do đội Octopus phát triển để dự thi AI in Economics 2026. D�
 
 ## Chạy thử
 
+**Chạy thử cho ban giám khảo.** [Website công khai](https://zomboxx.github.io/Octopus/) · [Tải APK](https://github.com/zomboXx/Octopus/releases/tag/v0.6.3-ae.1) · [Docker Compose và Android Emulator](docs/demo-setup.md)
+
 **Web cục bộ.** Cần Node.js 22 trở lên. Chạy từ thư mục gốc của repo, sau đó mở [trang giới thiệu](http://127.0.0.1:4174/) hoặc [bản trải nghiệm](http://127.0.0.1:4174/try/). Chọn **Dùng hồ sơ mẫu An** để thử các luồng chính.
 
 ```sh
@@ -71,4 +73,4 @@ Trên Windows, chạy `./scripts/build-preview-apk.ps1` trong `apps/mobile` đ�
 
 ## Trạng thái
 
-Android 0.6.3 là bản thử nghiệm đã chạy trên Android Emulator. Công việc, hồ sơ khách và vòng tròn cam kết được lưu cục bộ. Website hiện chạy được cục bộ. [Cấu hình triển khai](docs/deployment.md)
+Android 0.6.3 là bản thử nghiệm đã chạy trên Android Emulator. Công việc, hồ sơ khách và vòng tròn cam kết được lưu cục bộ. Bản web GitHub Pages hỗ trợ lịch mẫu. Có thể bật AI beta với backend chạy cục bộ bằng Compose. [Cấu hình triển khai](docs/deployment.md)

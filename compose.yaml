@@ -1,0 +1,17 @@
+services:
+  website:
+    build:
+      context: ./apps/website
+    ports:
+      - "127.0.0.1:4174:4174"
+    environment:
+      OCTOPUS_BIND_HOST: 0.0.0.0
+      OCTOPUS_LOCAL_APK: /apk/octopus-android-debug.apk
+      POOL_API_KEY: ${OCTOPUS_DEMO_API_KEY:-}
+      POOL_API_BASE_URL: ${POOL_API_BASE_URL:-https://api.poolai.win/v1}
+      POOL_MODEL: ${POOL_MODEL:-gpt-5.4-mini}
+    volumes:
+      - type: bind
+        source: ./apps/mobile/artifacts
+        target: /apk
+        read_only: true

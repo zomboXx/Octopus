@@ -11,7 +11,7 @@ test('launcher can be linked directly; widgets require setup and retain new bran
   await page.goto('/try/?view=launcher');
   await expect(page.locator('#launcher')).toBeVisible();
   await expect(page.getByRole('region',{name:'Widget Ghi nhanh 2 x 2',exact:true})).toBeVisible();
-  await expect(page.locator('.launcher-app-icon img').first()).toHaveAttribute('src','/assets/octopus-logo.png');
+  await expect(page.locator('.launcher-app-icon img').first()).toHaveJSProperty('src',new URL('../assets/octopus-logo.png',page.url()).href);
   await page.getByRole('button',{name:'Thêm việc bằng văn bản từ widget',exact:true}).click();
   await expect(page.getByRole('heading',{name:/Bắt đầu nhé/})).toBeVisible();
   await page.getByRole('button',{name:'Dùng hồ sơ mẫu An',exact:true}).click();

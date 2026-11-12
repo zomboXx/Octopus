@@ -9,6 +9,7 @@ const root=path.join(directory,'dist');
 const apk=process.env.OCTOPUS_LOCAL_APK || path.resolve(directory,'../mobile/artifacts/octopus-android-debug.apk');
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.ttf':'font/ttf','.txt':'text/plain; charset=utf-8'};
 const port=Number(process.env.PORT || 4174);
+const host=process.env.OCTOPUS_BIND_HOST || '127.0.0.1';
 const downloadable=async()=>{try{return (await stat(apk)).isFile();}catch{return false;}};
 http.createServer(async(req,res)=>{
   try {
@@ -33,9 +34,13 @@ http.createServer(async(req,res)=>{
       res.writeHead(200,{'Content-Type':'application/vnd.android.package-archive','Content-Disposition':'attachment; filename="octopus-android-debug.apk"','Content-Length':(await stat(apk)).size,'Cache-Control':'no-store'});
       if(req.method==='HEAD')res.end();else{const stream=createReadStream(apk);stream.on('error',()=>res.destroy());res.on('close',()=>stream.destroy());stream.pipe(res);}return;
     }
-    const page=url==='/'?'/index.html':url==='/try'||url==='/try/'?'/try/index.html':url;
+    if(url==='/try'){
+      const requestUrl=new URL(req.url,'http://localhost');
+      res.writeHead(308,{Location:'/try/'+requestUrl.search});res.end();return;
+    }
+    const page=url==='/'?'/index.html':url==='/try/'?'/try/index.html':url;
     const target=path.resolve(root,'.'+page);
     if(!target.startsWith(root+path.sep)){res.writeHead(403);res.end();return;}
     const body=await readFile(target);res.writeHead(200,{'Content-Type':types[path.extname(target)]||'application/octet-stream','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(req.method==='HEAD'?undefined:body);
   } catch {res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});res.end('Không tìm thấy trang.');}
-}).listen(port,'127.0.0.1',()=>console.log(`Octopus website: http://127.0.0.1:${port}`));
+}).listen(port,host,()=>console.log(`Octopus website: http://${host}:${port}`));
