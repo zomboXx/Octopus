@@ -1,0 +1,13 @@
+**/node_modules/
+**/.env*
+!**/.env.example
+**/.vercel/
+**/.android-dev/
+**/local.properties
+**/key.properties
+**/*.keystore
+**/*.jks
+**/*.apk
+**/*.aab
+**/__pycache__/
+**/*.log

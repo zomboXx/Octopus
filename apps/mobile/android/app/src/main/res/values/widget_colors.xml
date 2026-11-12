@@ -1,0 +1,7 @@
+<resources>
+    <color name="widget_blue">#0757DB</color>
+    <color name="widget_ink">#111B31</color>
+    <color name="widget_muted">#6B7891</color>
+    <color name="widget_tint">#F5F5FF</color>
+    <color name="widget_border">#E5E9FC</color>
+</resources>

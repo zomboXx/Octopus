@@ -1,0 +1,12 @@
+{
+  "version": null,
+  "channel": "internal-prototype",
+  "androidMinimum": "Android 7.0+",
+  "bytes": null,
+  "sha256": null,
+  "downloadUrl": null,
+  "localPreview": false,
+  "deviceTested": false,
+  "extensionUrl": null,
+  "emulatorTested": true
+}

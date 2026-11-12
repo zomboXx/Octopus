@@ -1,0 +1,32 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:padding="3dp">
+    <LinearLayout android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="170dp"
+        android:layout_gravity="center" android:orientation="vertical" android:paddingHorizontal="12dp" android:paddingVertical="14dp"
+        android:background="@drawable/widget_background" android:elevation="1dp">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="24dp" android:gravity="center_vertical" android:orientation="horizontal">
+            <ImageButton android:id="@+id/widget_open" android:layout_width="24dp" android:layout_height="24dp"
+                android:src="@drawable/widget_back_icon" android:padding="3dp" android:background="@drawable/widget_pill" android:contentDescription="Mở Octopus" />
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+                android:layout_marginStart="5dp" android:text="Ghi nhanh" android:fontFamily="sans-serif-medium" android:textSize="13sp"
+                android:textColor="@color/widget_ink" android:includeFontPadding="false" android:maxLines="1" android:ellipsize="end" />
+            <ImageView android:layout_width="5dp" android:layout_height="5dp" android:layout_marginEnd="2dp"
+                android:src="@drawable/widget_dot" android:importantForAccessibility="no" />
+        </LinearLayout>
+        <TextView android:id="@+id/widget_prompt" android:layout_width="match_parent" android:layout_height="0dp"
+            android:layout_weight="1" android:minHeight="30dp" android:layout_marginTop="10dp" android:layout_marginBottom="12dp"
+            android:paddingHorizontal="8dp" android:paddingVertical="5dp" android:gravity="center_vertical" android:includeFontPadding="false"
+            android:background="@drawable/widget_tile" android:text="@string/widget_quick_prompt" android:textSize="10.5sp"
+            android:fontFamily="sans-serif" android:textColor="#314A7C" android:maxLines="3" android:ellipsize="end"
+            android:contentDescription="Thêm việc bằng văn bản" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="40dp" android:orientation="horizontal" android:gravity="center_vertical">
+            <TextView android:id="@+id/widget_add" android:layout_width="0dp" android:layout_weight="1" android:layout_height="40dp"
+                android:background="@drawable/widget_pill" android:drawableStart="@drawable/widget_clock_icon" android:drawablePadding="3dp"
+                android:paddingHorizontal="8dp" android:text="@string/widget_focus_shortcut" android:gravity="center" android:textSize="11sp"
+                android:includeFontPadding="false" android:fontFamily="sans-serif-medium" android:textColor="@color/widget_blue"
+                android:maxLines="2" android:contentDescription="Bắt đầu tập trung 30 phút" />
+            <ImageButton android:id="@+id/widget_mic" android:layout_width="40dp" android:layout_height="40dp" android:layout_marginStart="6dp"
+                android:padding="11dp" android:src="@drawable/widget_mic_icon" android:background="@drawable/widget_mic_bg"
+                android:contentDescription="Thêm việc bằng giọng nói" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

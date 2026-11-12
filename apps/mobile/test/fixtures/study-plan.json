@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "timezone": "Asia/Ho_Chi_Minh",
+  "model": "gpt-5.4-mini",
+  "assumptions": [
+    "Tính từ 2026-10-19 theo ngày lịch Việt Nam: DBMS kiểm tra ngày 2026-10-22, CNPM ngày 2026-10-23, KTLT ngày 2026-10-24.",
+    "Các chủ đề người dùng nêu là phạm vi ôn tập dự kiến, chưa phải đề cương thi đã xác nhận.",
+    "Chỉ dùng slot được cung cấp; mỗi ngày xếp 2 phiên 45 phút, tổng 90 phút, thấp hơn mức 120 phút/ngày vì không có thêm slot."
+  ],
+  "exams": [
+    {
+      "date": "2026-10-22",
+      "subject": "DBMS"
+    },
+    {
+      "date": "2026-10-23",
+      "subject": "CNPM"
+    },
+    {
+      "date": "2026-10-24",
+      "subject": "KTLT"
+    }
+  ],
+  "questions": [
+    "Bạn có đề cương hoặc dạng bài kiểm tra của từng môn để điều chỉnh nội dung ôn không?"
+  ],
+  "sessions": [
+    {
+      "examDate": "2026-10-22",
+      "expectedOutput": "Viết đúng 2 truy vấn JOIN và ghi lại ít nhất 1 lỗi cần sửa.",
+      "objectives": [
+        "Nhớ lại cách ghép bảng và chọn điều kiện JOIN."
+      ],
+      "slotId": "d0-m1140",
+      "steps": [
+        "5 phút: tự viết lại cú pháp JOIN từ trí nhớ.",
+        "30 phút: làm 2 bài truy vấn ghép bảng từ tài liệu đang học.",
+        "10 phút: đối chiếu kết quả, sửa truy vấn và ghi nguyên nhân lỗi."
+      ],
+      "subject": "DBMS",
+      "title": "JOIN: tự nhớ và làm bài",
+      "start": "2026-10-19T12:00:00.000Z",
+      "end": "2026-10-19T12:45:00.000Z"
+    },
+    {
+      "examDate": "2026-10-23",
+      "expectedOutput": "Một bảng gồm 3 yêu cầu mẫu, mỗi yêu cầu có tiêu chí kiểm tra được.",
+      "objectives": [
+        "Phân biệt yêu cầu rõ ràng với yêu cầu mơ hồ."
+      ],
+      "slotId": "d0-m1195",
+      "steps": [
+        "10 phút: tự nhớ lại cách mô tả một yêu cầu.",
+        "25 phút: viết hoặc chỉnh 3 yêu cầu từ ví dụ trong tài liệu học.",
+        "10 phút: tìm chỗ mơ hồ và viết lại để có thể kiểm tra."
+      ],
+      "subject": "CNPM",
+      "title": "Yêu cầu: viết và chữa lỗi",
+      "start": "2026-10-19T12:55:00.000Z",
+      "end": "2026-10-19T13:40:00.000Z"
+    },
+    {
+      "examDate": "2026-10-22",
+      "expectedOutput": "Một bài chuẩn hóa đã sửa, kèm lý do cho từng bước tách bảng.",
+      "objectives": [
+        "Luyện nhận diện phụ thuộc và tách bảng theo nội dung đã học."
+      ],
+      "slotId": "d1-m1080",
+      "steps": [
+        "10 phút: tự nhớ lại các bước chuẩn hóa trong tài liệu.",
+        "25 phút: làm 1 bài tách bảng.",
+        "10 phút: đối chiếu lời giải, đánh dấu và sửa bước sai."
+      ],
+      "subject": "DBMS",
+      "title": "Chuẩn hóa: bài tập có chữa lỗi",
+      "start": "2026-10-20T11:00:00.000Z",
+      "end": "2026-10-20T11:45:00.000Z"
+    },
+    {
+      "examDate": "2026-10-24",
+      "expectedOutput": "Hai bài mảng chạy đúng trên ví dụ tự tạo, có ghi lỗi đã sửa.",
+      "objectives": [
+        "Luyện duyệt và xử lý phần tử mảng."
+      ],
+      "slotId": "d1-m1135",
+      "steps": [
+        "5 phút: tự nhớ các lỗi thường gặp khi duyệt mảng.",
+        "30 phút: giải 2 bài mảng trong tài liệu học.",
+        "10 phút: thử dữ liệu biên, sửa lỗi và ghi lại nguyên nhân."
+      ],
+      "subject": "KTLT",
+      "title": "Mảng: làm bài và thử dữ liệu biên",
+      "start": "2026-10-20T11:55:00.000Z",
+      "end": "2026-10-20T12:40:00.000Z"
+    },
+    {
+      "examDate": "2026-10-22",
+      "expectedOutput": "Một bài JOIN và một bài chuẩn hóa được tự chấm, kèm danh sách lỗi còn mắc.",
+      "objectives": [
+        "Tự kiểm tra hai chủ đề DBMS trước ngày kiểm tra."
+      ],
+      "slotId": "d2-m1140",
+      "steps": [
+        "30 phút: làm không xem tài liệu 1 bài JOIN và 1 bài chuẩn hóa.",
+        "15 phút: đối chiếu đáp án, chữa lỗi và tự giải thích lại bước sai."
+      ],
+      "subject": "DBMS",
+      "title": "DBMS: tự kiểm tra tổng hợp",
+      "start": "2026-10-21T12:00:00.000Z",
+      "end": "2026-10-21T12:45:00.000Z"
+    },
+    {
+      "examDate": "2026-10-23",
+      "expectedOutput": "Một bộ trường hợp kiểm thử cho 1 yêu cầu, gồm kết quả mong đợi và ít nhất 1 trường hợp biên.",
+      "objectives": [
+        "Chuyển yêu cầu thành trường hợp kiểm thử có thể đối chiếu."
+      ],
+      "slotId": "d2-m1195",
+      "steps": [
+        "10 phút: tự nhớ các thành phần của một trường hợp kiểm thử.",
+        "25 phút: lập các trường hợp kiểm thử cho 1 yêu cầu đã viết.",
+        "10 phút: rà thiếu dữ liệu biên hoặc kết quả mong đợi và sửa."
+      ],
+      "subject": "CNPM",
+      "title": "Kiểm thử: thiết kế trường hợp",
+      "start": "2026-10-21T12:55:00.000Z",
+      "end": "2026-10-21T13:40:00.000Z"
+    },
+    {
+      "examDate": "2026-10-23",
+      "expectedOutput": "Một yêu cầu đã chỉnh rõ và bộ trường hợp kiểm thử tương ứng được tự chấm.",
+      "objectives": [
+        "Tự kiểm tra khả năng viết yêu cầu và thiết kế kiểm thử."
+      ],
+      "slotId": "d3-m1080",
+      "steps": [
+        "30 phút: không xem ghi chú, sửa 1 yêu cầu mơ hồ và viết trường hợp kiểm thử.",
+        "15 phút: đối chiếu tài liệu, chữa lỗi và ghi 2 điểm cần nhớ."
+      ],
+      "subject": "CNPM",
+      "title": "CNPM: tự kiểm tra tổng hợp",
+      "start": "2026-10-22T11:00:00.000Z",
+      "end": "2026-10-22T11:45:00.000Z"
+    },
+    {
+      "examDate": "2026-10-24",
+      "expectedOutput": "Một bài con trỏ có giải thích giá trị trước và sau thao tác, kèm lỗi đã sửa.",
+      "objectives": [
+        "Theo dõi giá trị và địa chỉ trong bài tập con trỏ."
+      ],
+      "slotId": "d3-m1135",
+      "steps": [
+        "10 phút: tự vẽ lại quan hệ giữa biến, địa chỉ và con trỏ.",
+        "25 phút: làm 1 bài theo dõi hoặc sửa mã con trỏ trong tài liệu.",
+        "10 phút: kiểm tra từng bước, sửa lỗi và giải thích kết quả."
+      ],
+      "subject": "KTLT",
+      "title": "Con trỏ: theo dõi và chữa lỗi",
+      "start": "2026-10-22T11:55:00.000Z",
+      "end": "2026-10-22T12:40:00.000Z"
+    },
+    {
+      "examDate": "2026-10-24",
+      "expectedOutput": "Một bài kết hợp mảng và con trỏ chạy đúng với 2 bộ dữ liệu thử.",
+      "objectives": [
+        "Vận dụng mảng và con trỏ trong cùng một bài."
+      ],
+      "slotId": "d4-m1140",
+      "steps": [
+        "5 phút: tự nhắc lại lỗi đã ghi ở hai buổi trước.",
+        "30 phút: giải 1 bài kết hợp từ tài liệu học.",
+        "10 phút: thử 2 bộ dữ liệu, sửa lỗi và ghi nguyên nhân."
+      ],
+      "subject": "KTLT",
+      "title": "Mảng và con trỏ: bài tập kết hợp",
+      "start": "2026-10-23T12:00:00.000Z",
+      "end": "2026-10-23T12:45:00.000Z"
+    },
+    {
+      "examDate": "2026-10-24",
+      "expectedOutput": "Hai bài được tự chấm và danh sách ngắn các lỗi cần tránh khi kiểm tra.",
+      "objectives": [
+        "Tự kiểm tra mảng và con trỏ trước ngày kiểm tra."
+      ],
+      "slotId": "d4-m1195",
+      "steps": [
+        "30 phút: làm không xem tài liệu 1 bài mảng và 1 bài con trỏ.",
+        "15 phút: đối chiếu, sửa lỗi và tự giải thích lại phần làm sai."
+      ],
+      "subject": "KTLT",
+      "title": "KTLT: tự kiểm tra tổng hợp",
+      "start": "2026-10-23T12:55:00.000Z",
+      "end": "2026-10-23T13:40:00.000Z"
+    }
+  ],
+  "status": "draft",
+  "summary": "Lịch ôn từ 19 đến 23/10, mọi phiên đều trước ngày kiểm tra tương ứng. DBMS được ưu tiên đến 21/10; CNPM và KTLT được ôn rải qua nhiều ngày. Lịch dùng 90/120 phút mong muốn mỗi ngày do chỉ có hai slot 45 phút, nên chưa đáp ứng đủ 120 phút/ngày."
+}
