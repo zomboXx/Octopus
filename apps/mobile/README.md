@@ -24,3 +24,15 @@ flutter run --dart-define=OCTOPUS_API_URL=http://10.0.2.2:4180
 ```
 
 Để tạo APK với API đã cấu hình, dùng `./scripts/build-preview-apk.ps1 -WithAI -ApiUrl <url>`. Backend HTTPS yêu cầu mã beta. `POOL_API_KEY` chỉ được cấu hình ở backend. Khi chạy app không có URL API, người dùng vẫn có thể lập lịch thủ công và dùng các công cụ tập trung.
+
+## Thư mục chính
+
+| Thư mục | Nội dung |
+| --- | --- |
+| [`lib/`](lib/) | Giao diện Flutter, dữ liệu, lịch trình và gọi chức năng Android. |
+| [`android/app/src/main/`](android/app/src/main/) | Kotlin, manifest, widget, service và tài nguyên biểu tượng. |
+| [`assets/`](assets/) | Logo hiển thị trong giao diện Flutter. |
+| [`test/`](test/) và [`integration_test/`](integration_test/) | Kiểm thử Flutter và kiểm thử trên thiết bị. |
+| [`scripts/`](scripts/) | Build APK và chạy thử với emulator trên Windows. |
+
+[Hướng dẫn sử dụng](../../docs/user-guide.md) · [Quy trình kiểm thử](../../docs/testing.md) · [Cấu hình AI beta](../../docs/ai-beta.md)
