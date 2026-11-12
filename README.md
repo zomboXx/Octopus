@@ -40,6 +40,8 @@ Octopus do đội Octopus phát triển để dự thi AI in Economics 2026. D�
 
 ## Chạy thử
 
+**Bản source nộp AE:** bắt đầu tại [SUBMISSION.md](SUBMISSION.md), kể cả khi giải nén ZIP và không cài Git. Xem [kê khai thư viện và AI API](THIRD_PARTY_NOTICES.md), [phiên bản phụ thuộc](docs/dependencies.json) và [giấy phép bên thứ ba](LICENSES/).
+
 **Chạy thử cho ban giám khảo.** [Website công khai](https://zomboxx.github.io/Octopus/) · [Tải APK](https://github.com/zomboXx/Octopus/releases/tag/v0.6.3-ae.1) · [Docker Compose và Android Emulator](docs/demo-setup.md)
 
 **Web cục bộ.** Cần Node.js 22 trở lên. Chạy từ thư mục gốc của repo, sau đó mở [trang giới thiệu](http://127.0.0.1:4174/) hoặc [bản trải nghiệm](http://127.0.0.1:4174/try/). Chọn **Dùng hồ sơ mẫu An** để thử các luồng chính.

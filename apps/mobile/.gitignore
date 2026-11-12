@@ -34,7 +34,8 @@ migrate_working_dir/
 /coverage/
 /.android-dev/
 /test-results/
-/artifacts/
+/artifacts/*
+!/artifacts/README.md
 
 # Symbolication related
 app.*.symbols

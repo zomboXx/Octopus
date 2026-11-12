@@ -10,12 +10,13 @@ Bản công khai dùng kế hoạch mẫu. APK hỗ trợ Android 7.0 trở lên
 
 ## Chạy website bằng Docker Compose
 
-Cần Docker đang chạy và có Docker Compose. Mở terminal ở gốc bản clone.
+Cần Docker đang chạy và có Docker Compose. Với bản ZIP, giải nén rồi mở terminal trong thư mục có `compose.yaml` và chạy `docker compose up --build`. Lần đầu cần Internet để tải image và phụ thuộc. Không cần Git hoặc API key để dùng dữ liệu mẫu.
+
+Nếu lấy mã nguồn qua Git:
 
 ```sh
 git clone https://github.com/zomboXx/Octopus.git
 cd Octopus
-git switch --detach v0.6.3-ae.1
 docker compose up --build
 ```
 
