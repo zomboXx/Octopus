@@ -11,9 +11,9 @@ test('launcher can be linked directly; widgets require setup and retain new bran
   await page.goto('/try/?view=launcher');
   await expect(page.locator('#launcher')).toBeVisible();
   await expect(page.getByRole('region',{name:'Widget Ghi nhanh 2 x 2',exact:true})).toBeVisible();
-  await expect(page.locator('.launcher-app-icon img').first()).toHaveJSProperty('src',new URL('../assets/octopus-logo.png',page.url()).href);
+  await expect(page.locator('.launcher-app-icon img').first()).toHaveAttribute('src','../assets/octopus-logo.png');
   await page.getByRole('button',{name:'Thêm việc bằng văn bản từ widget',exact:true}).click();
-  await expect(page.getByRole('heading',{name:/Bắt đầu nhé/})).toBeVisible();
+  await expect(page.getByRole('heading',{name:/Bắt đầu từ bạn/})).toBeVisible();
   await page.getByRole('button',{name:'Dùng hồ sơ mẫu An',exact:true}).click();
   await page.getByRole('button',{name:'Màn hình chính Widgets',exact:true}).click();
   await expect(page.locator('#launcher')).toContainText('0 / 2 việc đã hoàn thành');
@@ -24,7 +24,7 @@ test('launcher can be linked directly; widgets require setup and retain new bran
   await page.reload();
   await expect(page.locator('#launcher')).toBeVisible();
   await expect(page.locator('#launcher')).toContainText('0 / 3 việc đã hoàn thành');
-  await page.getByRole('button',{name:'Mở ứng dụng Octopus',exact:true}).click();
+  await page.getByRole('button',{name:'Mở ứng dụng octopus',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Ôn bài từ widget',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
 });
@@ -35,13 +35,13 @@ test('widget focus shares a live timer and checkout ends the linked session exac
   await page.getByRole('button',{name:'Thử bộ đếm 30 phút',exact:true}).click();
   await page.getByRole('button',{name:'Màn hình chính Widgets',exact:true}).click();
   await expect(page.locator('.widget-entry')).toContainText('ĐANG TẬP TRUNG');
-  await expect(page.locator('.widget-entry')).toContainText('Đọc chương 4 · DBMS');
+  await expect(page.locator('.widget-entry')).toContainText('Đọc 10 trang sách');
   await page.clock.install();await page.clock.fastForward(65000);
   await expect(page.locator('#widget-countdown')).toContainText('28:');
   await page.getByRole('button',{name:'Check-out công việc trên widget',exact:true}).click();
   await page.getByRole('button',{name:'Bỏ qua phần nhìn lại',exact:true}).click();
   await expect(page.locator('#launcher')).toContainText('1 / 2 việc đã hoàn thành');
-  await expect(page.locator('.widget-entry')).toContainText('Ôn kiểm thử phần mềm');
+  await expect(page.locator('.widget-entry')).toContainText('Luyện nói tiếng Anh 15 phút');
   const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('octopus.web-demo.v1')));
   expect(state.focus).toBeNull();expect(state.sessions).toHaveLength(1);
   expect(state.sessions[0].seconds).toBeGreaterThanOrEqual(65);
@@ -50,6 +50,7 @@ test('widget focus shares a live timer and checkout ends the linked session exac
 });
 
 test('completed widgets suggest tomorrow; voice is disclosed; widgets fit small and desktop widths',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-11-17T12:00:00+07:00'));
   await enter(page);
   for(let i=0;i<2;i++){
     await page.getByRole('button',{name:'Check-out công việc trên widget',exact:true}).click();
@@ -61,8 +62,8 @@ test('completed widgets suggest tomorrow; voice is disclosed; widgets fit small 
   await page.getByLabel('Bạn muốn làm gì?',{exact:true}).fill('Việc ngày mai');
   await page.getByRole('button',{name:'Thêm vào danh sách',exact:true}).click();
   await page.getByRole('button',{name:'Thêm việc bằng giọng nói từ widget',exact:true}).click();
-  await expect(page.getByRole('dialog')).toContainText('hiện chưa có trên bản trải nghiệm thử');
-  await page.getByRole('button',{name:'Đã hiểu',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Ghi nhanh bằng giọng nói',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Đóng',exact:true}).click();
   for(const [width,height] of [[1440,1000],[390,844],[320,640],[844,390]]){
     await page.setViewportSize({width,height});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBeTruthy();

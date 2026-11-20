@@ -1,7 +1,5 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:octopus_mobile/brain_store.dart';
@@ -72,32 +70,12 @@ void main() {
       });
       final store = BrainStore(device: ReviewUsageDevice())
         ..onboardingComplete = true;
-      await tester.pumpWidget(
-        RepaintBoundary(
-          key: const Key('usage-review-capture'),
-          child: OctopusApp(store: store),
-        ),
-      );
+      await tester.pumpWidget(OctopusApp(store: store));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Thống kê'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Tuần trước'));
       await tester.pumpAndSettle();
-      Future<void> capture(String name) async {
-        final boundary = tester.renderObject<RenderRepaintBoundary>(
-          find.byKey(const Key('usage-review-capture')),
-        );
-        await tester.runAsync(() async {
-          final image = await boundary.toImage(pixelRatio: 2);
-          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-          final output = File('../../tmp/octopus-067-$name.png');
-          await output.parent.create(recursive: true);
-          await output.writeAsBytes(bytes!.buffer.asUint8List());
-          image.dispose();
-        });
-      }
-
-      await capture('week');
       final suggestion = find.byType(RestrictionSuggestionCard);
       await tester.scrollUntilVisible(
         suggestion,
@@ -107,7 +85,6 @@ void main() {
       await tester.ensureVisible(suggestion);
       await tester.pumpAndSettle();
       expect(find.text('Thêm hạn chế').hitTestable(), findsOneWidget);
-      await capture('suggestion');
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },

@@ -9,3 +9,7 @@
 @media(max-width:480px){.web-header{height:46px;padding:0 15px;background:#fff}.web-brand{font-size:17px;gap:6px}.web-brand img{width:23px;height:23px}.web-brand span{font-size:9px;margin-left:3px}.back-site{font-size:10px}.demo-layout{padding:0;display:block;min-height:0}.phone-stage{width:100%}.preview-label,.preview-foot{display:none}.app-device{width:100%;height:calc(100dvh - 46px);min-height:0;max-height:none;box-shadow:none;border:0;border-radius:0}.app-nav{height:calc(64px + env(safe-area-inset-bottom));padding-bottom:calc(6px + env(safe-area-inset-bottom))}.toast{bottom:calc(78px + env(safe-area-inset-bottom))}.screen-body{padding-top:15px}.welcome .step{margin-bottom:25px}}
 @media(max-height:500px) and (min-width:481px) and (max-width:950px){.web-header{height:46px}.demo-guide,.demo-note,.preview-label,.preview-foot{display:none}.demo-layout{display:block;padding:0;min-height:0}.phone-stage{width:100%}.app-device{width:min(100%,480px);height:calc(100dvh - 46px);min-height:0;max-height:none;border-radius:0;box-shadow:none;border:0}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.web-brand .brand-lockup,.app-wordmark{display:inline-flex;align-items:center;gap:8px;width:auto;height:auto;font-weight:800}.app-wordmark img{width:1.25em;height:1.25em;object-fit:contain}.brand-icon{object-fit:contain}
+
+#planner-code-field[hidden]{display:none}

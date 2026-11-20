@@ -8,3 +8,5 @@
 @media(prefers-reduced-motion:reduce){:root{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
 main{overflow-x:clip}.focus-feature .illustration-label{background:none;color:#8395b1;padding:0}
 .brand-lockup{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;color:#172b50;font-size:22px;font-weight:800;letter-spacing:-.06em}.brand-lockup img{width:40px;height:40px;object-fit:contain}.footer .brand-lockup{font-size:19px}@media(max-width:620px){.brand-lockup{font-size:19px}.brand-lockup img{width:34px;height:34px}}
+
+.hero-mascot{position:absolute;z-index:2;bottom:17%;right:6%;width:clamp(72px,14vw,112px);height:auto;object-fit:contain;pointer-events:none}
