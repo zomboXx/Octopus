@@ -87,7 +87,7 @@ String? planError(
     }
     final exam = DateTime.tryParse(p['examDate'] ?? '');
     if (exam == null || dayKey(local).compareTo(dayKey(exam)) >= 0) {
-      return 'Phiên ôn cần diễn ra trước ngày kiểm tra.';
+      return 'Buổi học cần diễn ra trước hạn hoàn thành. Hãy kiểm tra hạn rồi tạo lại kế hoạch.';
     }
     final key = dayKey(local), length = e.difference(s).inMinutes;
     daily.update(key, (n) => n + length, ifAbsent: () => length);

@@ -1,3 +1,4 @@
+import 'activity_history.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -12,6 +13,7 @@ import 'task_checkout.dart';
 import 'circles_screen.dart';
 import 'flow_design.dart';
 import 'wellbeing_card.dart';
+import 'time_picker.dart';
 
 const blue = flowBlue,
     ink = flowInk,
@@ -103,6 +105,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int tab = 0;
   int taskDay = 0;
   bool handlingAction = false;
+  String displayedDay = dayKey(DateTime.now());
   Timer? timer;
   BrainStore get store => widget.store;
   @override
@@ -115,10 +118,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
 
   void tick() {
     if (!mounted) return;
+    final now = DateTime.now();
+    final day = dayKey(now);
+    final dayChanged = day != displayedDay;
+    displayedDay = day;
     final end = store.focusEnd;
-    if (end != null && !DateTime.now().isBefore(end)) {
+    if (end != null && !now.isBefore(end)) {
       unawaited(store.finishFocus());
-    } else if (tab == 2 && end != null) {
+    } else if (dayChanged || (tab == 2 && end != null)) {
       setState(() {});
     }
   }
@@ -163,6 +170,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       } else if (action == 'wellbeing') {
         setState(() => tab = 2);
         await showWellbeingReminder(context);
+      } else if (action == 'usage') {
+        setState(() => tab = 3);
       } else if (action == 'focus' || action == 'start_focus') {
         setState(() => tab = 2);
         if (action == 'start_focus') {
@@ -174,7 +183,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           await store.startFocus(30);
         }
       } else {
-        setState(() => tab = 0);
+        setState(() {
+          tab = 0;
+          if (action == 'tasks') taskDay = 0;
+        });
       }
     } catch (_) {
       /* Non-Android widget previews have no platform channel. */
@@ -209,9 +221,9 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   void about() => showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Octopus · Android 0.6.3'),
+      title: const Text('Octopus · Android 0.6.8'),
       content: const Text(
-        'App cài trên điện thoại, giao diện Flutter và kết nối API Android bằng Kotlin.\n\nCông việc, hoạt động, ảnh và lựa chọn lưu trên thiết bị này. Chưa đồng bộ hoặc gửi cho người khác.\n\nScreen time đọc sự kiện sử dụng Android. Focus dùng Trợ năng để chặn app và VPN cục bộ để chặn mạng khi đã cấp quyền. Nhóm và check-in lưu cục bộ; chưa đồng bộ bạn bè. Lịch AI cần API phát triển đang chạy; đăng nhập chưa kết nối.',
+        'App cài trên điện thoại, giao diện Flutter và kết nối API Android bằng Kotlin.\n\nCông việc, hoạt động, ảnh và lựa chọn lưu trên thiết bị này. Chưa đồng bộ hoặc gửi cho người khác.\n\nScreen time đọc sự kiện sử dụng Android. Focus dùng Trợ năng để chặn app và VPN cục bộ để chặn mạng khi đã cấp quyền. Nhóm và check-in lưu cục bộ; chưa đồng bộ bạn bè. Starter có 5 lượt lập kế hoạch AI mỗi tháng trên bản cài này; không cần nhập mã. Đăng nhập chưa kết nối.',
       ),
       actions: [
         TextButton(
@@ -242,7 +254,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Octopus',
+              'octopus',
               style: TextStyle(
                 color: blue,
                 fontSize: 15,
@@ -399,50 +411,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     }
   }
 
-  Widget activityCard(Map<String, dynamic> a) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Pill(
-            a['audience'] == 'private' ? 'CHỈ MÌNH TÔI' : 'QUYỀN XEM MÔ PHỎNG',
-          ),
-          const SizedBox(height: 9),
-          Text(
-            a['title'],
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${stamp(DateTime.parse(a['start']))}–${clockText(DateTime.parse(a['end']))} · tự ghi nhận',
-            style: const TextStyle(fontSize: 12, color: muted),
-          ),
-          if ((a['note'] ?? '').isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 9),
-              child: Text(a['note']),
-            ),
-          if (a['image'] != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 14),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(a['image']),
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  cacheWidth: 900,
-                  errorBuilder: (_, _, _) =>
-                      const Text('Ảnh hiện không còn trên máy.'),
-                ),
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
+  Widget activityCard(Map<String, dynamic> entry) =>
+      ActivityRecordCard(store: store, entry: entry);
   Widget groups() => CirclesScreen(store: store);
 }
 
@@ -630,8 +600,9 @@ class EmptyState extends StatelessWidget {
 }
 
 class ActivityEditor extends StatefulWidget {
-  const ActivityEditor({super.key, required this.store});
+  const ActivityEditor({super.key, required this.store, this.existing});
   final BrainStore store;
+  final Map<String, dynamic>? existing;
   @override
   State<ActivityEditor> createState() => _ActivityEditorState();
 }
@@ -645,6 +616,20 @@ class _ActivityEditorState extends State<ActivityEditor> {
   Set<String> recipients = {};
   bool busy = false;
   @override
+  void initState() {
+    super.initState();
+    final entry = widget.existing;
+    if (entry == null) return;
+    title.text = entry['title'] ?? '';
+    note.text = entry['note'] ?? '';
+    start = DateTime.tryParse(entry['start'] ?? '')?.toLocal() ?? start;
+    end = DateTime.tryParse(entry['end'] ?? '')?.toLocal() ?? end;
+    audience = entry['audience'] ?? 'private';
+    recipients = Set<String>.from(entry['recipients'] ?? []);
+    photo = entry['image'];
+  }
+
+  @override
   void dispose() {
     title.dispose();
     note.dispose();
@@ -656,14 +641,13 @@ class _ActivityEditorState extends State<ActivityEditor> {
     final date = await showDatePicker(
       context: context,
       initialDate: value,
-      firstDate: now.subtract(const Duration(days: 1)),
+      firstDate: widget.existing == null
+          ? now.subtract(const Duration(days: 1))
+          : DateTime(1900),
       lastDate: now,
     );
     if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(value),
-    );
+    final time = await pickAppTime(context, TimeOfDay.fromDateTime(value));
     if (time == null || !mounted) return;
     setState(() {
       final selected = DateTime(
@@ -698,7 +682,13 @@ class _ActivityEditorState extends State<ActivityEditor> {
   Future<void> save() async {
     final invalid = title.text.trim().isEmpty
         ? 'Nhập tên hoạt động.'
-        : activityError(start, end, DateTime.now());
+        : widget.existing == null
+        ? activityError(start, end, DateTime.now())
+        : !end.isAfter(start) || end.isAfter(DateTime.now())
+        ? 'Giờ kết thúc cần sau giờ bắt đầu và không ở tương lai.'
+        : end.difference(start) > const Duration(days: 1)
+        ? 'Một hoạt động cần dài tối đa 24 giờ.'
+        : null;
     if (invalid != null) {
       setState(() => error = invalid);
       return;
@@ -708,18 +698,42 @@ class _ActivityEditorState extends State<ActivityEditor> {
       return;
     }
     setState(() => busy = true);
-    widget.store.activities.add({
-      'id': newId(),
+    final value = {
       'title': title.text.trim(),
       'note': note.text.trim(),
       'start': start.toIso8601String(),
       'end': end.toIso8601String(),
       'audience': audience,
-      'recipients': audience == 'selected' ? recipients.toList() : [],
+      'recipients': audience == 'selected' ? recipients.toList() : <String>[],
       'image': photo,
+    };
+    bool saved;
+    if (widget.existing != null) {
+      saved = await widget.store.updateRecord(
+        widget.store.activities,
+        widget.existing!['id'],
+        value,
+      );
+    } else {
+      final entry = {'id': newId(), ...value};
+      widget.store.activities.add(entry);
+      await widget.store.save();
+      saved = widget.store.storageError == null;
+      if (!saved) {
+        widget.store.activities.remove(entry);
+        widget.store.refreshViews();
+      }
+    }
+    if (!mounted) return;
+    if (saved) {
+      Navigator.pop(context);
+      return;
+    }
+    setState(() {
+      busy = false;
+      error =
+          widget.store.storageError ?? 'Hoạt động này không còn trong nhật ký.';
     });
-    await widget.store.save();
-    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -733,10 +747,15 @@ class _ActivityEditorState extends State<ActivityEditor> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Ghi một điều đã làm',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                  widget.existing == null
+                      ? 'Ghi một điều đã làm'
+                      : 'Sửa hoạt động',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               IconButton(
@@ -745,14 +764,17 @@ class _ActivityEditorState extends State<ActivityEditor> {
               ),
             ],
           ),
-          const Text(
-            'Không cần bấm giờ từ đầu. Ghi lại trong vòng 24 giờ.',
-            style: TextStyle(color: muted, fontSize: 13),
+          Text(
+            widget.existing == null
+                ? 'Không cần bấm giờ từ đầu. Ghi lại trong vòng 24 giờ.'
+                : 'Có thể sửa ghi chép cũ; giờ kết thúc không ở tương lai.',
+            style: const TextStyle(color: muted, fontSize: 13),
           ),
           const SizedBox(height: 20),
           TextField(
             controller: title,
-            maxLength: 120,
+            enabled: !busy,
+            maxLength: 140,
             decoration: const InputDecoration(
               labelText: 'Tên hoạt động',
               hintText: 'Chạy bộ quanh công viên',
@@ -764,14 +786,14 @@ class _ActivityEditorState extends State<ActivityEditor> {
             title: const Text('Bắt đầu'),
             subtitle: Text(stamp(start)),
             trailing: const Icon(Icons.schedule),
-            onTap: () => pickTime(true),
+            onTap: busy ? null : () => pickTime(true),
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Kết thúc'),
             subtitle: Text(stamp(end)),
             trailing: const Icon(Icons.schedule),
-            onTap: () => pickTime(false),
+            onTap: busy ? null : () => pickTime(false),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
@@ -781,6 +803,11 @@ class _ActivityEditorState extends State<ActivityEditor> {
               photo == null ? 'Thêm ảnh / screenshot Strava' : 'Đổi ảnh',
             ),
           ),
+          if (photo != null)
+            TextButton(
+              onPressed: busy ? null : () => setState(() => photo = null),
+              child: const Text('Bỏ ảnh'),
+            ),
           if (photo != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -794,6 +821,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
             ),
           const SizedBox(height: 12),
           TextField(
+            enabled: !busy,
             controller: note,
             maxLines: 3,
             maxLength: 1000,
@@ -869,10 +897,64 @@ class FocusPanel extends StatefulWidget {
 class _FocusPanelState extends State<FocusPanel> {
   final duration = TextEditingController(text: '30');
   String? error;
+  bool busy = false;
   @override
   void dispose() {
     duration.dispose();
     super.dispose();
+  }
+
+  Future<void> startFocus({required bool protected}) async {
+    final minutes = int.tryParse(duration.text) ?? 0;
+    final invalid = focusError(minutes);
+    if (invalid != null) {
+      setState(() => error = invalid);
+      return;
+    }
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    final store = widget.store;
+    try {
+      if (protected && !await ensureFocusProtection(context, store)) return;
+      if (!mounted) return;
+      await prepareWellbeingReminders(context, store, minutes);
+      if (!mounted) return;
+      await store.startFocus(minutes, protected: protected);
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> stopFocus() async {
+    final store = widget.store;
+    setState(() => busy = true);
+    try {
+      if (store.focusProtected) {
+        final reason = await showDialog<Map<String, dynamic>>(
+          context: context,
+          builder: (_) => const WorkEntryDialog(
+            title: 'Kết thúc sớm',
+            label: 'Lý do cần dừng phiên',
+            confirmLabel: 'Ghi nhận và kết thúc',
+          ),
+        );
+        if (reason == null || store.focusEnd == null) return;
+        await store.device.cancelFocus(reason['title'] as String);
+      }
+      await store.finishFocus();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chưa kết nối được bộ bảo vệ. Hãy thử lại.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   @override
@@ -936,53 +1018,37 @@ class _FocusPanelState extends State<FocusPanel> {
                   backgroundColor: const Color(0xffeaf1ff),
                   foregroundColor: blue,
                 ),
-                onPressed: () async {
-                  if (active) {
-                    final reason = await showDialog<Map<String, dynamic>>(
-                      context: context,
-                      builder: (_) => const WorkEntryDialog(
-                        title: 'Kết thúc sớm',
-                        label: 'Lý do cần dừng phiên',
-                        confirmLabel: 'Ghi nhận và kết thúc',
-                      ),
-                    );
-                    if (reason == null) return;
-                    try {
-                      await store.device.cancelFocus(reason['title'] as String);
-                    } catch (_) {
-                      if (mounted) {
-                        setState(
-                          () => error =
-                              'Chưa kết nối được bộ bảo vệ. Hãy thử lại.',
-                        );
-                      }
-                      return;
-                    }
-                    await store.finishFocus();
-                  } else {
-                    final minutes = int.tryParse(duration.text) ?? 0;
-                    final invalid = focusError(minutes);
-                    if (invalid != null) {
-                      setState(() => error = invalid);
-                      return;
-                    }
-                    setState(() => error = null);
-                    if (!await ensureFocusProtection(context, store)) return;
-                    if (!context.mounted) return;
-                    await prepareWellbeingReminders(context, store, minutes);
-                    if (!mounted) return;
-                    await store.startFocus(minutes);
-                  }
-                },
+                onPressed: busy
+                    ? null
+                    : active
+                    ? stopFocus
+                    : () => startFocus(protected: true),
                 icon: Icon(active ? Icons.stop_rounded : Icons.play_arrow),
                 label: Text(active ? 'Kết thúc phiên' : 'Bắt đầu phiên'),
               ),
+              if (!active)
+                TextButton.icon(
+                  onPressed: busy ? null : () => startFocus(protected: false),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xffeaf1ff),
+                  ),
+                  icon: const Icon(Icons.timer_outlined),
+                  label: const Text('Chỉ đếm giờ'),
+                ),
               const SizedBox(height: 14),
-              const Text(
-                'Gọi điện và Cài đặt luôn được phép.\nCác app khác bị chặn khi bảo vệ đã bật.',
+              Text(
+                active
+                    ? store.focusProtected
+                          ? 'Phiên có bảo vệ'
+                          : 'Đang đếm giờ'
+                    : 'Bắt đầu phiên có bảo vệ cần quyền Android. Chỉ đếm giờ dùng được ngay.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 11, color: Color(0xffa0b7dc)),
+                style: const TextStyle(fontSize: 11, color: Color(0xffa0b7dc)),
               ),
+              if (error != null && !active) ...[
+                const SizedBox(height: 8),
+                Text(error!, style: const TextStyle(color: Color(0xffffb4ab))),
+              ],
             ],
           ),
         ),
@@ -1026,8 +1092,6 @@ class _FocusPanelState extends State<FocusPanel> {
                   'Tối đa 8 giờ. Lịch đã xác nhận được theo dõi ở nền khi bật bảo vệ. Chặn mạng chỉ áp dụng cho phiên tập trung sâu.',
                   style: TextStyle(color: muted, fontSize: 12),
                 ),
-                if (error != null)
-                  Text(error!, style: const TextStyle(color: Colors.red)),
               ],
             ),
           ),

@@ -13,7 +13,7 @@ flutter analyze
 flutter test
 ```
 
-Trên Windows, `./scripts/build-preview-apk.ps1` tạo APK debug trong `artifacts/` cùng phiên bản và SHA-256. Octopus có mã ứng dụng riêng `vn.octopus.mobile`, vì vậy có thể cài cạnh Brain10. Dữ liệu được lưu trong vùng riêng của từng app.
+Trên Windows, `./scripts/build-preview-apk.ps1` tạo APK debug trong `artifacts/` cùng phiên bản và SHA-256. Mã ứng dụng là `vn.octopus.mobile`. Android giữ dữ liệu khi nâng cấp APK ký bằng cùng khóa.
 
 ## Lập lịch AI
 

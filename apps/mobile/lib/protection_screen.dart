@@ -2,6 +2,23 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'brain_store.dart';
 import 'main.dart' show Panel, PageIntro, blue, muted;
+import 'app_icon.dart';
+import 'usage_screen.dart'
+    show restrictionSuggestion, RestrictionSuggestionCard, rows, usageDuration;
+
+String guardSummary(BrainStore store, Map<String, dynamic> status) {
+  if (status['accessibility'] != true) {
+    return status['accessibilityEnabled'] == true
+        ? 'Dịch vụ Trợ năng đang ngắt'
+        : 'Chưa kết nối Trợ năng';
+  }
+  if (store.protection['enabled'] != true) return 'Bảo vệ đang tắt';
+  if (status['paused'] == true) return 'Bảo vệ đang tạm dừng';
+  if ((status['activeTitle'] as String? ?? '').isNotEmpty) {
+    return 'Đang bảo vệ tập trung';
+  }
+  return 'Đã bật · chờ lịch hoặc phiên tập trung';
+}
 
 Future<bool> ensureFocusProtection(
   BuildContext context,
@@ -77,6 +94,14 @@ Future<bool> ensureFocusProtection(
       context,
       MaterialPageRoute(builder: (_) => ProtectionScreen(store: store)),
     );
+    final updated = await store.device.guardStatus();
+    if (store.protection['enabled'] == true &&
+        updated['accessibility'] == true &&
+        (store.protection['blockInternet'] != true ||
+            updated['vpnPrepared'] == true)) {
+      await store.device.resumeProtection();
+      return true;
+    }
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,6 +125,10 @@ class _ProtectionScreenState extends State<ProtectionScreen>
     with WidgetsBindingObserver {
   Map<String, dynamic> status = {};
   List<Map<String, dynamic>> apps = [];
+  List<Map<String, dynamic>> usageApps = [], usageDays = [];
+  Timer? statusTimer;
+  int refreshId = 0;
+  String query = '';
   String? error;
   bool loading = true;
   @override
@@ -107,10 +136,16 @@ class _ProtectionScreenState extends State<ProtectionScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     refresh();
+    statusTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => refreshStatus(),
+    );
   }
 
   @override
   void dispose() {
+    refreshId++;
+    statusTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -121,19 +156,42 @@ class _ProtectionScreenState extends State<ProtectionScreen>
   }
 
   Future<void> refresh() async {
+    final run = ++refreshId;
     try {
       final data = await widget.store.device.guardStatus();
+      if (!mounted || run != refreshId) return;
+      setState(() => status = data);
       final installed = await widget.store.device.installedApps();
-      if (mounted) {
+      Map<String, dynamic> usage = {};
+      try {
+        usage = await widget.store.device.usage();
+      } catch (_) {}
+      final recentApps = rows(usage['apps']);
+      final times = {
+        for (final app in recentApps) app['package']: app['milliseconds'],
+      };
+      final ordered = installed
+          .map((app) => {...app, 'milliseconds': times[app['package']] ?? 0})
+          .toList();
+      ordered.sort((a, b) {
+        final byTime = (b['milliseconds'] as num).compareTo(
+          a['milliseconds'] as num,
+        );
+        return byTime != 0
+            ? byTime
+            : (a['name'] as String).compareTo(b['name'] as String);
+      });
+      if (mounted && run == refreshId) {
         setState(() {
-          status = data;
-          apps = installed;
+          apps = ordered;
+          usageApps = recentApps;
+          usageDays = rows(usage['days']);
           error = null;
           loading = false;
         });
       }
     } catch (_) {
-      if (mounted) {
+      if (mounted && run == refreshId) {
         setState(() {
           error = 'Chưa đọc được quyền Android. Thử kiểm tra lại.';
           loading = false;
@@ -142,10 +200,72 @@ class _ProtectionScreenState extends State<ProtectionScreen>
     }
   }
 
+  Future<void> refreshStatus() async {
+    try {
+      final data = await widget.store.device.guardStatus();
+      if (mounted) setState(() => status = data);
+    } catch (_) {
+      if (mounted) setState(() => status = {});
+    }
+  }
+
+  Future<void> notifications() async {
+    await widget.store.device.requestNotifications();
+    final state = await widget.store.device.guardStatus();
+    if (state['notifications'] != true) {
+      await widget.store.device.openNotificationSettings();
+    }
+  }
+
+  Future<void> disableForBanking() async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Tắt Trợ năng của Octopus?'),
+        content: const Text(
+          'Dịch vụ chặn ứng dụng và VPN tập trung sẽ dừng. Sau khi dùng ngân hàng, bạn có thể bật lại Octopus trong Trợ năng rồi tiếp tục phiên có bảo vệ.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Quay lại'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Tắt Trợ năng'),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true) {
+      await action(widget.store.device.disableAccessibility);
+    }
+  }
+
   Future<void> change(String key, bool value) async {
+    final previous = widget.store.protection[key];
     widget.store.protection[key] = value;
     await widget.store.save();
-    if (value && key == 'enabled') await widget.store.device.resumeProtection();
+    if (widget.store.storageError != null) {
+      if (widget.store.protection[key] == value) {
+        widget.store.protection[key] = previous;
+      }
+      if (mounted) setState(() => error = widget.store.storageError);
+      return;
+    }
+    try {
+      if (value && key == 'enabled') {
+        await widget.store.device.resumeProtection();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => error =
+              'Chưa kết nối được bộ bảo vệ. Mở Trợ năng để kiểm tra lại dịch vụ.',
+        );
+      }
+      return;
+    }
     if (mounted) setState(() {});
     await refresh();
   }
@@ -180,10 +300,39 @@ class _ProtectionScreenState extends State<ProtectionScreen>
       padding: const EdgeInsets.all(22),
       children: [
         const PageIntro(
-          'Thiết lập một lần.',
-          'Android cần bạn tự cấp quyền. Octopus chỉ bật bảo vệ khi bạn đồng ý bên dưới.',
+          'Bảo vệ theo lựa chọn của bạn',
+          'Kiểm tra kết nối dịch vụ, bật bảo vệ rồi chọn ứng dụng cần hạn chế.',
         ),
         const SizedBox(height: 16),
+        Panel(
+          color: const Color(0xffeef3ff),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                guardSummary(widget.store, status),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                status['accessibility'] != true
+                    ? status['accessibilityEnabled'] == true
+                          ? 'Android vẫn ghi nhận quyền đã bật, nhưng dịch vụ chưa kết nối. Mở Trợ năng, tắt rồi bật lại Octopus.'
+                          : 'Mở Trợ năng để cho phép Octopus nhận biết ứng dụng đang mở.'
+                    : (status['activeTitle'] as String? ?? '').isNotEmpty
+                    ? status['activeTitle'] as String
+                    : 'Bảo vệ áp dụng trong phiên có bảo vệ hoặc lịch đã chọn. Bạn có thể kiểm tra bằng cách bắt đầu một phiên.',
+                style: const TextStyle(color: muted, fontSize: 12),
+              ),
+              if (error != null)
+                Text(error!, style: const TextStyle(color: Colors.red)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
         const Panel(
           child: Text(
             'Trợ năng nhận tên app đang mở để hiện màn hình chặn; không đọc nội dung màn hình, tin nhắn hay mật khẩu. VPN xử lý và bỏ gói mạng ngay trên máy, không chuyển qua máy chủ. Lịch sử dùng app và cảnh báo lưu trên thiết bị.',
@@ -198,7 +347,7 @@ class _ProtectionScreenState extends State<ProtectionScreen>
                 : Icons.shield_outlined,
             color: blue,
           ),
-          title: const Text('1. Cho phép Trợ năng'),
+          title: const Text('Kết nối Trợ năng'),
           subtitle: Text(
             status['accessibility'] == true
                 ? 'Đã kết nối · nhận biết và chặn ứng dụng'
@@ -216,7 +365,7 @@ class _ProtectionScreenState extends State<ProtectionScreen>
             status['vpnPrepared'] == true ? Icons.check_circle : Icons.vpn_lock,
             color: blue,
           ),
-          title: const Text('2. Cho phép VPN cục bộ'),
+          title: const Text('VPN cho phiên chặn Internet'),
           subtitle: Text(
             status['vpnPrepared'] == true
                 ? 'Đã cấp quyền · chỉ chặn mạng trong phiên sâu'
@@ -226,12 +375,19 @@ class _ProtectionScreenState extends State<ProtectionScreen>
         ),
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.notifications_outlined, color: blue),
-          title: const Text('3. Hiện thông báo phiên tập trung'),
-          subtitle: const Text(
-            'Hiện trạng thái bảo vệ; nhắc nghỉ nhẹ và uống nước mỗi 40 phút trong phiên dài.',
+          leading: Icon(
+            status['notifications'] == true
+                ? Icons.check_circle
+                : Icons.notifications_outlined,
+            color: blue,
           ),
-          onTap: () => action(widget.store.device.requestNotifications),
+          title: const Text('Cho phép thông báo'),
+          subtitle: Text(
+            status['notifications'] == true
+                ? 'Đã cho phép. Nhắc nghỉ và nhắc dùng app lâu được bật riêng.'
+                : 'Chưa cho phép. Chạm để cấp quyền hoặc mở cài đặt thông báo.',
+          ),
+          onTap: () => action(notifications),
         ),
         const Divider(),
         SwitchListTile(
@@ -264,7 +420,17 @@ class _ProtectionScreenState extends State<ProtectionScreen>
           [
             'sound',
             'Phát âm báo khi vi phạm',
-            '30 giây cảnh báo, nghỉ 60 giây. Theo âm lượng máy.',
+            'Cảnh báo lặp trong 30 giây, nghỉ 60 giây rồi nhắc tiếp.',
+          ],
+          [
+            'alarmLoud',
+            'Âm báo mạnh',
+            'Dùng kênh âm lượng báo thức của điện thoại.',
+          ],
+          [
+            'vibrate',
+            'Rung khi cảnh báo',
+            'Rung cùng nhịp âm báo nếu thiết bị hỗ trợ.',
           ],
         ])
           SwitchListTile(
@@ -274,6 +440,47 @@ class _ProtectionScreenState extends State<ProtectionScreen>
             value: widget.store.protection[option[0]] == true,
             onChanged: (v) => change(option[0], v),
           ),
+        Wrap(
+          spacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: () => action(widget.store.device.previewAlarm),
+              icon: const Icon(Icons.volume_up_outlined),
+              label: const Text('Thử âm báo'),
+            ),
+            TextButton(
+              onPressed: () => action(widget.store.device.openSoundSettings),
+              child: const Text('Âm lượng báo thức'),
+            ),
+          ],
+        ),
+        if (status['alarmVolume'] != null)
+          Text(
+            'Âm lượng báo thức hiện tại ${status['alarmVolume']}/${status['alarmMaxVolume']}',
+            style: const TextStyle(color: muted, fontSize: 12),
+          ),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text('Chạy nền và ứng dụng ngân hàng'),
+          children: [
+            const Text(
+              'Một số ứng dụng ngân hàng yêu cầu tắt quyền Trợ năng. Nút dưới tắt dịch vụ của Octopus và dừng VPN. Bạn cần bật lại Trợ năng sau khi dùng xong.',
+              style: TextStyle(color: muted, fontSize: 12),
+            ),
+            TextButton(
+              onPressed: disableForBanking,
+              child: const Text('Tắt Trợ năng để dùng ngân hàng'),
+            ),
+            const Text(
+              'Trên Xiaomi, mở thông tin Octopus và kiểm tra quyền chạy nền, tự khởi động và mục Tiết kiệm pin. Android có thể dừng dịch vụ khi hạn chế chạy nền.',
+              style: TextStyle(color: muted, fontSize: 12),
+            ),
+            TextButton(
+              onPressed: () => action(widget.store.device.openAppSettings),
+              child: const Text('Thông tin ứng dụng và chạy nền'),
+            ),
+          ],
+        ),
         const SizedBox(height: 12),
         const Text(
           'Ứng dụng hạn chế khi đến giờ',
@@ -284,13 +491,52 @@ class _ProtectionScreenState extends State<ProtectionScreen>
           style: TextStyle(color: muted, fontSize: 12),
         ),
         if (loading) const LinearProgressIndicator(),
-        for (final app in apps)
+        if (restrictionSuggestion(usageApps, usageDays, widget.store)
+            case final suggestion?)
+          RestrictionSuggestionCard(
+            store: widget.store,
+            app: suggestion,
+            onChanged: () {
+              if (mounted) setState(() {});
+            },
+            onSkip: () {
+              setState(
+                () => usageApps = usageApps
+                    .where((app) => app['package'] != suggestion['package'])
+                    .toList(),
+              );
+            },
+          ),
+        const SizedBox(height: 12),
+        const Text(
+          'Ứng dụng được xếp theo thời gian dùng trong tuần khi có quyền thống kê.',
+          style: TextStyle(color: muted, fontSize: 12),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Tìm ứng dụng',
+            prefixIcon: Icon(Icons.search),
+          ),
+          onChanged: (value) =>
+              setState(() => query = value.toLowerCase().trim()),
+        ),
+        for (final app in apps.where(
+          (app) => (app['name'] as String).toLowerCase().contains(query),
+        ))
           CheckboxListTile(
             contentPadding: EdgeInsets.zero,
             dense: true,
+            secondary: AppIdentityIcon(
+              device: widget.store.device,
+              package: app['package'] as String,
+              name: app['name'] as String,
+            ),
             title: Text(app['name'] as String),
             subtitle: Text(
-              app['package'] as String,
+              (app['milliseconds'] as num) > 0
+                  ? '${usageDuration(app['milliseconds'] as num)} trong tuần'
+                  : 'Chưa có thời gian dùng trong tuần',
               style: const TextStyle(fontSize: 11),
             ),
             value: widget.store.restricted.contains(app['package']),
@@ -357,10 +603,7 @@ class _GuardStatusCardState extends State<GuardStatusCard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget.store.protection['enabled'] == true &&
-                  status['accessibility'] == true
-              ? 'Bộ bảo vệ đã sẵn sàng'
-              : 'Cần thiết lập bảo vệ',
+          guardSummary(widget.store, status),
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         Text(
@@ -368,6 +611,7 @@ class _GuardStatusCardState extends State<GuardStatusCard> {
           style: const TextStyle(fontSize: 12, color: muted),
         ),
         if (widget.store.focusEnd?.isAfter(DateTime.now()) == true &&
+            widget.store.focusProtected &&
             widget.store.protection['blockInternet'] == true &&
             status['networkBlocked'] != true)
           const Text(

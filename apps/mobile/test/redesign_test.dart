@@ -119,25 +119,9 @@ void main() {
       expect(restored.focusEnd, isNull);
     },
   );
-  test(
-    'AI refuses missing fixed schedule before network or configuration',
-    () async {
-      expect(
-        () => PlanningApi().draft(
-          BrainStore(device: MemoryDevice()),
-          'DBMS sau 3 ngày',
-          '',
-        ),
-        throwsA(
-          isA<FormatException>().having(
-            (e) => e.message,
-            'message',
-            contains('lịch cố định'),
-          ),
-        ),
-      );
-    },
-  );
+  test('Starter does not require a beta code', () {
+    expect(PlanningApi().needsAccessCode, isFalse);
+  });
   testWidgets(
     'first focus explains data and permission, decline does not start or grant',
     (tester) async {
@@ -274,7 +258,7 @@ void main() {
               find.widgetWithText(FilledButton, 'Lên kế hoạch cùng AI'),
             )
             .onPressed,
-        isNull,
+        isNotNull,
       );
       await tester.tap(find.text('Hôm nay').last);
       await tester.pumpAndSettle();

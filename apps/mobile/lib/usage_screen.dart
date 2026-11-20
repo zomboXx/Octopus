@@ -1,8 +1,12 @@
+import 'activity_history.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'brain_store.dart';
 import 'main.dart' show Panel, PageIntro, blue, muted;
 import 'protection_screen.dart';
+import 'app_icon.dart';
+import 'usage_day_screen.dart';
+import 'usage_reminder_card.dart';
 
 String usageDuration(num ms) {
   final minutes = (ms / 60000).floor();
@@ -33,6 +37,7 @@ Map<String, dynamic>? restrictionSuggestion(
         pkg == 'vn.octopus.mobile' ||
         pkg.contains('launcher') ||
         pkg.contains('dialer') ||
+        pkg == 'com.miui.home' ||
         pkg == 'com.android.settings') {
       continue;
     }
@@ -51,9 +56,14 @@ class UsagePanel extends StatefulWidget {
   State<UsagePanel> createState() => _UsagePanelState();
 }
 
+DateTime usageWeekStart(DateTime date) =>
+    DateTime(date.year, date.month, date.day - date.weekday + 1);
+
 class _UsagePanelState extends State<UsagePanel> with WidgetsBindingObserver {
   bool loading = true, granted = false;
   String? error;
+  DateTime week = usageWeekStart(DateTime.now());
+  int requestId = 0;
   List<Map<String, dynamic>> apps = [], days = [], events = [];
   final hidden = <String>{};
   @override
@@ -65,6 +75,7 @@ class _UsagePanelState extends State<UsagePanel> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    requestId++;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -75,80 +86,138 @@ class _UsagePanelState extends State<UsagePanel> with WidgetsBindingObserver {
   }
 
   Future<void> refresh() async {
-    if (mounted) setState(() => loading = true);
+    final run = ++requestId, selected = week;
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
-      final data = await widget.store.device.usage();
+      final data = await widget.store.device.usageWeek(dayKey(selected));
       final history = await widget.store.device.guardEvents();
-      final cutoff = DateTime.now()
-          .subtract(const Duration(days: 7))
-          .millisecondsSinceEpoch;
-      if (mounted) {
-        setState(() {
-          granted = data['granted'] == true;
-          apps = rows(data['apps']);
-          days = rows(data['days']);
-          events = history
-              .where((e) => (e['at'] as num? ?? 0) >= cutoff)
-              .toList();
-          error = null;
-        });
-      }
+      if (!mounted || run != requestId) return;
+      final end = DateTime(
+        selected.year,
+        selected.month,
+        selected.day + 7,
+      ).millisecondsSinceEpoch;
+      setState(() {
+        granted = data['granted'] == true;
+        apps = granted ? rows(data['apps']) : [];
+        days = granted ? rows(data['days']) : [];
+        events = history.where((event) {
+          final at = event['at'] as num? ?? 0;
+          return at >= selected.millisecondsSinceEpoch && at < end;
+        }).toList();
+      });
     } catch (_) {
-      if (mounted) {
+      if (mounted && run == requestId) {
         setState(
-          () => error =
-              'Chưa đọc được thống kê Android. Kéo xuống hoặc nhấn làm mới để thử lại.',
+          () => error = 'Chưa tải được tuần đã chọn. Nhấn làm mới để thử lại.',
         );
       }
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted && run == requestId) setState(() => loading = false);
     }
+  }
+
+  void changeWeek(int offset) {
+    setState(() {
+      week = DateTime(week.year, week.month, week.day + offset * 7);
+      apps = [];
+      days = [];
+      events = [];
+    });
+    refresh();
   }
 
   @override
   Widget build(BuildContext context) {
-    final total = apps.fold<num>(0, (n, a) => n + (a['milliseconds'] as num));
+    final total = apps.fold<num>(
+      0,
+      (n, app) => n + (app['milliseconds'] as num),
+    );
     final suggestion = restrictionSuggestion(
-      apps.where((a) => !hidden.contains(a['package'])).toList(),
+      apps.where((app) => !hidden.contains(app['package'])).toList(),
       days,
       widget.store,
     );
+    final current = usageWeekStart(DateTime.now());
+    final last = DateTime(week.year, week.month, week.day + 6);
     final interruptions = events
-        .where((e) => e['type'] == 'interruption')
+        .where((event) => event['type'] == 'interruption')
         .length;
-    final exits = events.where((e) => e['type'] == 'early_exit').length;
     return RefreshIndicator(
       onRefresh: refresh,
       child: ListView(
         padding: const EdgeInsets.all(22),
         children: [
           const PageIntro(
-            'Thời gian kể câu chuyện.',
-            '7 ngày theo lịch trên thiết bị · cập nhật khi bạn mở hoặc làm mới.',
+            'Thời gian của bạn',
+            'Chọn một tuần. Chạm vào từng ngày để xem ứng dụng và hoạt động.',
           ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              onPressed: refresh,
-              icon: const Icon(Icons.refresh),
-              tooltip: 'Làm mới thống kê',
-            ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              IconButton(
+                onPressed: loading ? null : () => changeWeek(-1),
+                tooltip: 'Tuần trước',
+                icon: const Icon(Icons.chevron_left),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      '${week.day}/${week.month} – ${last.day}/${last.month}/${last.year}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    if (week != current)
+                      TextButton(
+                        onPressed: loading
+                            ? null
+                            : () {
+                                setState(() => week = current);
+                                refresh();
+                              },
+                        child: const Text('Về tuần này'),
+                      ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: loading || !week.isBefore(current)
+                    ? null
+                    : () => changeWeek(1),
+                tooltip: 'Tuần sau',
+                icon: const Icon(Icons.chevron_right),
+              ),
+              IconButton(
+                onPressed: loading ? null : refresh,
+                tooltip: 'Làm mới thống kê',
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
           ),
+          LocalJournalPanel(store: widget.store, week: week),
+          const SizedBox(height: 16),
           if (loading) const LinearProgressIndicator(),
           if (error != null)
-            Text(error!, style: const TextStyle(color: Colors.red)),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(error!, style: const TextStyle(color: Colors.red)),
+            ),
           if (!granted && !loading)
             Panel(
               child: Column(
                 children: [
-                  const Icon(Icons.insights_outlined, size: 44, color: blue),
+                  const Icon(Icons.insights_outlined, size: 40, color: blue),
                   const SizedBox(height: 12),
                   const Text(
-                    'Cho phép đọc thời gian dùng ứng dụng',
+                    'Cho phép xem thời gian sử dụng',
                     style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const Text(
-                    'Android cung cấp thời điểm ứng dụng ở phía trước. Octopus không đọc nội dung và không gửi lịch sử này lên AI.',
+                    'Octopus đọc tên ứng dụng và thời gian dùng từ Android. Lịch sử được xử lý trên điện thoại.',
                   ),
                   const SizedBox(height: 12),
                   FilledButton(
@@ -174,197 +243,249 @@ class _UsagePanelState extends State<UsagePanel> with WidgetsBindingObserver {
               ),
             ),
           if (granted) ...[
+            const SizedBox(height: 12),
             Panel(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'TỔNG THỜI GIAN ỨNG DỤNG',
-                    style: TextStyle(
-                      color: muted,
-                      fontSize: 11,
-                      letterSpacing: 1,
-                    ),
+                    'Thời gian ứng dụng trong tuần',
+                    style: TextStyle(color: muted),
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     usageDuration(total),
                     style: const TextStyle(
                       fontSize: 30,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  if (days.isNotEmpty) UsageBars(days: days),
+                  const SizedBox(height: 18),
+                  if (days.isNotEmpty)
+                    UsageBars(
+                      days: days,
+                      onDaySelected: (day) {
+                        Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => UsageDayScreen(
+                              store: widget.store,
+                              date: day['date'] as String,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Tính từ các sự kiện mở/đóng app, chia theo ngày địa phương. Ngày trống có thể do Android thiếu lịch sử; không đồng nghĩa dùng 0 phút. Không bao gồm toàn bộ thời gian màn hình sáng.',
-                    style: TextStyle(color: muted, fontSize: 11),
+                    'Chạm một cột để xem ngày đó. Lịch sử phụ thuộc dữ liệu Android còn lưu.',
+                    style: TextStyle(color: muted, fontSize: 12),
                   ),
+                  if (days.any((day) => day['aggregate'] == true))
+                    const Text(
+                      'Một số ngày dùng số liệu tổng hợp của Android vì lịch sử từng lần mở app đã hết hạn.',
+                      style: TextStyle(color: muted, fontSize: 12),
+                    ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            if (total > 0)
-              UsageDistribution(apps: apps, total: total)
-            else
+            UsageReminderCard(store: widget.store),
+            const SizedBox(height: 16),
+            if (suggestion != null)
+              RestrictionSuggestionCard(
+                store: widget.store,
+                app: suggestion,
+                onChanged: () {
+                  if (mounted) setState(() {});
+                },
+                onSkip: () =>
+                    setState(() => hidden.add(suggestion['package'] as String)),
+              ),
+            if (total > 0) ...[
+              const SizedBox(height: 16),
+              UsageDistribution(apps: apps, total: total),
+              const SizedBox(height: 20),
+              const Text(
+                'Ứng dụng trong tuần',
+                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+              ),
+              for (final app in apps)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: AppIdentityIcon(
+                    device: widget.store.device,
+                    package: app['package'] as String,
+                    name: app['name'] as String,
+                  ),
+                  title: Text(
+                    app['name'] as String,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    '${((app['milliseconds'] as num) / math.max(total, 1) * 100).toStringAsFixed(0)}% thời gian${widget.store.restricted.contains(app['package']) ? " · Đã hạn chế" : ""}',
+                  ),
+                  trailing: Text(
+                    usageDuration(app['milliseconds'] as num),
+                    style: const TextStyle(color: blue, fontSize: 12),
+                  ),
+                ),
+            ] else if (!loading && error == null)
               const Panel(
                 child: Text(
-                  'Chưa có lịch sử khả dụng. Hãy dùng vài ứng dụng rồi quay lại; Octopus không tạo số liệu minh họa.',
+                  'Android chưa có dữ liệu khả dụng cho tuần này. Bạn có thể chọn tuần khác.',
                 ),
               ),
             const SizedBox(height: 16),
-            if (days.where((d) => (d['milliseconds'] as num? ?? 0) > 0).length <
-                3)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 16),
-                child: Text(
-                  'Cần ít nhất 3 ngày có dữ liệu để đề xuất app nên hạn chế. Trong lúc đó, bạn có thể tự chọn danh sách ở mục Bảo vệ tập trung.',
-                  style: TextStyle(color: muted, fontSize: 12),
-                ),
-              ),
-            if (suggestion != null)
-              Panel(
-                color: const Color(0xffeaf1ff),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Một gợi ý cho bạn',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+            Panel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Nhịp tập trung trong tuần',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    '$interruptions lần nhắc quay lại · ${events.where((event) => event['type'] == 'early_exit').length} lần kết thúc sớm',
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () => Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProtectionScreen(store: widget.store),
                       ),
                     ),
-                    Text(
-                      '${suggestion['name']}: ${usageDuration(suggestion['milliseconds'] as num)} trong ${suggestion['observedDays']} ngày có dữ liệu. Bình quân ít nhất 1 giờ/ngày và chiếm ít nhất 20% thời gian ứng dụng.',
-                    ),
-                    const Text(
-                      'Bạn có muốn thêm app này vào danh sách hạn chế? Đây có thể là công cụ làm việc của bạn, nên Octopus không tự quyết định.',
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        FilledButton(
-                          onPressed: () async {
-                            widget.store.restricted.add(
-                              suggestion['package'] as String,
-                            );
-                            await widget.store.save();
-                            if (mounted) setState(() {});
-                          },
-                          child: const Text('Thêm hạn chế'),
-                        ),
-                        TextButton(
-                          onPressed: () => setState(
-                            () => hidden.add(suggestion['package'] as String),
-                          ),
-                          child: const Text('Để sau'),
-                        ),
-                      ],
-                    ),
-                    CheckboxListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      value: false,
-                      title: const Text(
-                        'Không hỏi lại về app này',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      onChanged: (v) async {
-                        if (v != true) return;
-                        widget.store.dismissedSuggestions.add(
-                          suggestion['package'] as String,
-                        );
+                    icon: const Icon(Icons.shield_outlined),
+                    label: const Text('Quản lý bảo vệ và danh sách hạn chế'),
+                  ),
+                  if (widget.store.dismissedSuggestions.isNotEmpty)
+                    TextButton(
+                      onPressed: () async {
+                        widget.store.dismissedSuggestions.clear();
                         await widget.store.save();
                         if (mounted) setState(() {});
                       },
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 16),
-            const Text(
-              'Theo ứng dụng · cả 7 ngày',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            for (final app in apps)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  app['name'] as String,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  '${((app['milliseconds'] as num) / math.max(total, 1) * 100).toStringAsFixed(1)}%${widget.store.restricted.contains(app['package']) ? " · Đang hạn chế theo lịch" : ""}',
-                ),
-                trailing: Text(
-                  usageDuration(app['milliseconds'] as num),
-                  style: const TextStyle(color: blue),
-                ),
-              ),
-          ],
-          const SizedBox(height: 16),
-          Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Nhìn lại 7 ngày',
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
-                ),
-                Text('$interruptions lần cảnh báo · $exits lần kết thúc sớm'),
-                Text(
-                  exits >= 3
-                      ? 'Bạn đã kết thúc sớm nhiều lần. Có thể thử phiên 20–25 phút hoặc điều chỉnh giờ học cho phù hợp hơn.'
-                      : 'Cảnh báo lặp lại được tính thành từng lần, không phải số phiên thất bại. Chưa có dữ liệu không có nghĩa là không mất tập trung.',
-                  style: const TextStyle(color: muted, fontSize: 12),
-                ),
-                if (interruptions > 0) ...[
-                  const SizedBox(height: 8),
-                  for (final e
-                      in events
-                          .where((e) => e['type'] == 'interruption')
-                          .toList()
-                          .reversed
-                          .take(4))
-                    Text(
-                      '${DateTime.fromMillisecondsSinceEpoch((e['at'] as num).toInt()).toLocal().toString().substring(5, 16)} · ${e['title']}\n${e['package']}',
-                      style: const TextStyle(fontSize: 12),
+                      child: const Text('Cho phép gợi ý lại các app đã ẩn'),
                     ),
                 ],
-                TextButton.icon(
-                  onPressed: () => Navigator.push<void>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProtectionScreen(store: widget.store),
-                    ),
-                  ),
-                  icon: const Icon(Icons.shield_outlined),
-                  label: const Text('Quản lý bảo vệ và danh sách hạn chế'),
-                ),
-                if (widget.store.dismissedSuggestions.isNotEmpty)
-                  TextButton(
-                    onPressed: () async {
-                      widget.store.dismissedSuggestions.clear();
-                      await widget.store.save();
-                      if (mounted) setState(() {});
-                    },
-                    child: const Text('Cho phép gợi ý lại các app đã ẩn'),
-                  ),
-              ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
+class RestrictionSuggestionCard extends StatelessWidget {
+  const RestrictionSuggestionCard({
+    super.key,
+    required this.store,
+    required this.app,
+    required this.onChanged,
+    required this.onSkip,
+  });
+  final BrainStore store;
+  final Map<String, dynamic> app;
+  final VoidCallback onChanged, onSkip;
+  @override
+  Widget build(BuildContext context) => Panel(
+    color: const Color(0xffedf3ff),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Bạn muốn dành ít thời gian hơn ở đây?',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            AppIdentityIcon(
+              device: store.device,
+              package: app['package'] as String,
+              name: app['name'] as String,
+              size: 46,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    app['name'] as String,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    usageDuration(app['milliseconds'] as num),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      color: blue,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Trung bình ${usageDuration((app['milliseconds'] as num) / (app['observedDays'] as int))}/ngày có dữ liệu.',
+          style: const TextStyle(color: muted, fontSize: 12),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          children: [
+            FilledButton(
+              onPressed: () async {
+                store.restricted.add(app['package'] as String);
+                await store.save();
+                if (context.mounted && store.storageError != null) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(store.storageError!)));
+                }
+                onChanged();
+              },
+              child: const Text('Thêm hạn chế'),
+            ),
+            TextButton(onPressed: onSkip, child: const Text('Để sau')),
+          ],
+        ),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          title: const Text(
+            'Vì sao có gợi ý này?',
+            style: TextStyle(fontSize: 12),
+          ),
+          children: [
+            const Text(
+              'Ứng dụng chiếm ít nhất 20% thời gian và trung bình từ 1 giờ/ngày, với ít nhất 3 ngày có dữ liệu. Bạn quyết định app nào phù hợp để hạn chế.',
+              style: TextStyle(color: muted, fontSize: 12),
+            ),
+            TextButton(
+              onPressed: () async {
+                store.dismissedSuggestions.add(app['package'] as String);
+                await store.save();
+                onChanged();
+              },
+              child: const Text('Ẩn gợi ý cho ứng dụng này'),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
 class UsageBars extends StatelessWidget {
-  const UsageBars({super.key, required this.days});
+  const UsageBars({super.key, required this.days, this.onDaySelected});
   final List<Map<String, dynamic>> days;
+  final ValueChanged<Map<String, dynamic>>? onDaySelected;
   @override
   Widget build(BuildContext context) {
     final maxValue = days.fold<num>(
@@ -381,35 +502,47 @@ class UsageBars extends StatelessWidget {
               child: Semantics(
                 label:
                     '${d['date']}: ${usageDuration(d['milliseconds'] as num)}',
-                child: Tooltip(
-                  message:
-                      '${d['date']} · ${usageDuration(d['milliseconds'] as num)}',
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${((d['milliseconds'] as num) / 60000).floor()}p',
-                        style: const TextStyle(fontSize: 9, color: muted),
-                      ),
-                      const SizedBox(height: 5),
-                      Container(
-                        height: math
-                            .max(2, (d['milliseconds'] as num) / maxValue * 120)
-                            .toDouble(),
-                        margin: const EdgeInsets.symmetric(horizontal: 7),
-                        decoration: BoxDecoration(
-                          color: d == days.last
-                              ? blue
-                              : const Color(0xffb9cff9),
-                          borderRadius: BorderRadius.circular(5),
+                button: onDaySelected != null && d['future'] != true,
+                child: InkWell(
+                  onTap: onDaySelected == null || d['future'] == true
+                      ? null
+                      : () => onDaySelected!(d),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Tooltip(
+                    message:
+                        '${d['date']} · ${usageDuration(d['milliseconds'] as num)}',
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(
+                          d['future'] == true || d['available'] == false
+                              ? '—'
+                              : '${((d['milliseconds'] as num) / 60000).floor()}p',
+                          style: const TextStyle(fontSize: 9, color: muted),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        (d['date'] as String).substring(8),
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                    ],
+                        const SizedBox(height: 5),
+                        Container(
+                          height: math
+                              .max(
+                                2,
+                                (d['milliseconds'] as num) / maxValue * 120,
+                              )
+                              .toDouble(),
+                          margin: const EdgeInsets.symmetric(horizontal: 7),
+                          decoration: BoxDecoration(
+                            color: d['date'] == dayKey(DateTime.now())
+                                ? blue
+                                : const Color(0xffb9cff9),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          (d['date'] as String).substring(8),
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -463,7 +596,7 @@ class UsageDistribution extends StatelessWidget {
                 ),
                 child: const Center(
                   child: Text(
-                    '7 NGÀY',
+                    'TRONG TUẦN',
                     style: TextStyle(color: muted, fontSize: 12),
                   ),
                 ),

@@ -53,15 +53,25 @@ class BrainStore extends ChangeNotifier {
     'watchFixed': true,
     'blockInternet': true,
     'sound': true,
+    'alarmLoud': true,
+    'vibrate': true,
+    'usageReminders': false,
+    'usageReminderStrong': false,
+    'usageReminderMinutes': 15,
   };
   Set<String> dismissedSuggestions = {};
   List<Map<String, dynamic>> circles = [];
   List<Map<String, dynamic>> checkins = [];
+  Map<String, dynamic>? planningDraft;
+  Map<String, dynamic> aiQuota = {};
+  Map<String, dynamic>? planningAttempt;
   String? focusTaskId;
   DateTime? focusStart, focusEnd;
+  bool focusProtected = true;
   int focusMinutes = 0;
   String? storageError;
   Future<void> _writes = Future.value();
+  void refreshViews() => notifyListeners();
 
   Future<void> load() async {
     try {
@@ -81,6 +91,13 @@ class BrainStore extends ChangeNotifier {
       commitments = list('commitments');
       circles = list('circles');
       checkins = list('checkins');
+      planningDraft = json['planningDraft'] is Map
+          ? Map<String, dynamic>.from(json['planningDraft'])
+          : null;
+      aiQuota = Map<String, dynamic>.from(json['aiQuota'] ?? {});
+      planningAttempt = json['planningAttempt'] is Map
+          ? Map<String, dynamic>.from(json['planningAttempt'])
+          : null;
       focusTaskId = json['focusTaskId'];
       studyPreferences.addAll(
         Map<String, dynamic>.from(json['studyPreferences'] ?? {}),
@@ -97,6 +114,7 @@ class BrainStore extends ChangeNotifier {
       );
       focusStart = DateTime.tryParse(json['focusStart'] ?? '');
       focusEnd = DateTime.tryParse(json['focusEnd'] ?? '');
+      focusProtected = json['focusProtected'] != false;
       focusMinutes = json['focusMinutes'] ?? 0;
       if (focusStart == null || focusEnd == null) {
         focusStart = null;
@@ -107,7 +125,7 @@ class BrainStore extends ChangeNotifier {
     }
   }
 
-  Future<void> save() async {
+  Future<void> save({bool finishOnboarding = false}) async {
     final payload = jsonEncode({
       'version': 1,
       'wellbeingReminders': wellbeingReminders,
@@ -115,10 +133,13 @@ class BrainStore extends ChangeNotifier {
       'activities': activities,
       'plan': plan,
       'profile': profile,
-      'onboardingComplete': onboardingComplete,
+      'onboardingComplete': onboardingComplete || finishOnboarding,
       'commitments': commitments,
       'circles': circles,
       'checkins': checkins,
+      'planningDraft': planningDraft,
+      'aiQuota': aiQuota,
+      'planningAttempt': planningAttempt,
       'focusTaskId': focusTaskId,
       'studyPreferences': studyPreferences,
       'restricted': restricted.toList(),
@@ -126,11 +147,13 @@ class BrainStore extends ChangeNotifier {
       'dismissedSuggestions': dismissedSuggestions.toList(),
       'focusStart': focusStart?.toIso8601String(),
       'focusEnd': focusEnd?.toIso8601String(),
+      'focusProtected': focusProtected,
       'focusMinutes': focusMinutes,
     });
     _writes = _writes.then((_) async {
       try {
         await device.writeState(payload);
+        if (finishOnboarding) onboardingComplete = true;
         storageError = null;
       } catch (_) {
         storageError = 'Chưa lưu được thay đổi trên máy. Hãy thử lại.';
@@ -141,12 +164,17 @@ class BrainStore extends ChangeNotifier {
     await _writes;
   }
 
-  Future<void> startFocus(int minutes, {DateTime? start}) async {
+  Future<void> startFocus(
+    int minutes, {
+    DateTime? start,
+    bool protected = true,
+  }) async {
     final invalid = focusError(minutes);
     if (invalid != null) throw ArgumentError(invalid);
     if (focusEnd != null) return;
     focusStart = start ?? DateTime.now();
     focusEnd = focusStart!.add(Duration(minutes: minutes));
+    focusProtected = protected;
     final pending = workOn(focusStart!).where((t) => t['done'] != true);
     focusTaskId = pending.isEmpty ? null : pending.first['id'];
     await save();
@@ -155,6 +183,55 @@ class BrainStore extends ChangeNotifier {
   List<Map<String, dynamic>> tasksOn(DateTime date) => tasks
       .where((t) => (t['date'] ?? dayKey(DateTime.now())) == dayKey(date))
       .toList();
+
+  List<({Map<String, dynamic> item, String date, bool canMove})> overdueWork(
+    DateTime now,
+  ) {
+    final today = dayKey(now);
+    final entries =
+        [
+              for (final task in tasks)
+                (
+                  item: task,
+                  date: task['date'] as String? ?? today,
+                  canMove: true,
+                ),
+              for (final session in plan)
+                if (session['kind'] != 'break')
+                  (
+                    item: session,
+                    date: dayKey(
+                      DateTime.tryParse(session['start'] ?? '')?.toLocal() ??
+                          now,
+                    ),
+                    canMove: false,
+                  ),
+            ]
+            .where(
+              (entry) =>
+                  entry.item['done'] != true && entry.date.compareTo(today) < 0,
+            )
+            .toList();
+    entries.sort((a, b) => b.date.compareTo(a.date));
+    return entries;
+  }
+
+  Future<void> moveTaskToToday(Map<String, dynamic> task) async {
+    final oldDate = task['date'];
+    final today = dayKey(DateTime.now());
+    if (!tasks.contains(task) ||
+        task['done'] == true ||
+        oldDate is! String ||
+        oldDate.compareTo(today) >= 0) {
+      return;
+    }
+    task['date'] = today;
+    await save();
+    if (storageError != null && task['date'] == today) {
+      task['date'] = oldDate;
+      notifyListeners();
+    }
+  }
 
   List<Map<String, dynamic>> workOn(DateTime date) {
     final entries = [
@@ -194,10 +271,12 @@ class BrainStore extends ChangeNotifier {
     item['audience'] = audience;
     item['recipients'] = audience == 'selected' ? recipients : <String>[];
     if (focusTaskId == item['id'] && focusEnd != null) {
-      await device.cancelFocus(
-        'Đã hoàn thành: ${item['title']}',
-        completed: true,
-      );
+      if (focusProtected) {
+        await device.cancelFocus(
+          'Đã hoàn thành: ${item['title']}',
+          completed: true,
+        );
+      }
       await finishFocus();
     }
     await save();
@@ -227,6 +306,27 @@ class BrainStore extends ChangeNotifier {
       'createdAt': DateTime.now().toIso8601String(),
     });
     await save();
+  }
+
+  Future<bool> updateRecord(
+    List<Map<String, dynamic>> entries,
+    String id,
+    Map<String, dynamic> changes,
+  ) async {
+    final index = entries.indexWhere((entry) => entry['id'] == id);
+    if (index < 0) return false;
+    final entry = entries[index],
+        before = Map<String, dynamic>.from(entries[index]);
+    entry.addAll(changes);
+    await save();
+    if (storageError != null) {
+      entry
+        ..clear()
+        ..addAll(before);
+      notifyListeners();
+      return false;
+    }
+    return true;
   }
 
   Future<void> finishFocus({DateTime? now}) async {

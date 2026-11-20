@@ -161,7 +161,7 @@ class _TaskCheckoutState extends State<TaskCheckout> {
               maxLines: 4,
               style: const TextStyle(fontSize: 12),
               decoration: const InputDecoration(
-                hintText: 'Ví dụ: Đã đọc chương 4 và ghi lại 3 ý chính…',
+                hintText: 'Ví dụ, đã đọc 10 trang sách và ghi lại 3 ý chính.',
               ),
             ),
             const Align(

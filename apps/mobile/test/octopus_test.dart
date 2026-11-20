@@ -50,6 +50,25 @@ class MemoryDevice extends DeviceBridge {
   };
   @override
   Future<Map<String, dynamic>> usage() async => {'granted': false, 'apps': []};
+  @override
+  Future<Map<String, dynamic>> usageWeek(String start) => usage();
+  @override
+  Future<Map<String, dynamic>> usageDay(String date) async {
+    final data = await usage();
+    final days = (data['days'] as List? ?? [])
+        .where((day) => day['date'] == date)
+        .toList();
+    return {...data, 'days': days};
+  }
+
+  @override
+  Future<Map<String, dynamic>> usageReminderStatus() async => {
+    'notifications': true,
+    'usageGranted': true,
+    'running': false,
+  };
+  @override
+  Future<void> requestNotifications() async {}
 }
 
 void main() {

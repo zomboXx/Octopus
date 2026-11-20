@@ -3,7 +3,38 @@ import 'package:flutter/services.dart';
 
 /// Android integration is separate from UI. No WebView is used.
 class DeviceBridge {
+  Future<String?> planningGuestToken() =>
+      channel.invokeMethod<String>('trialGuestToken');
   static const channel = MethodChannel('vn.octopus/device');
+  final _icons = <String, Future<Uint8List?>>{};
+  Future<Uint8List?> appIcon(String package) =>
+      _icons.putIfAbsent(package, () async {
+        try {
+          return await channel.invokeMethod<Uint8List>('appIcon', package);
+        } catch (_) {
+          return null;
+        }
+      });
+  Future<void> disableAccessibility() =>
+      channel.invokeMethod<void>('disableAccessibility');
+  Future<void> openAppSettings() =>
+      channel.invokeMethod<void>('openAppSettings');
+  Future<void> openNotificationSettings() =>
+      channel.invokeMethod<void>('openNotificationSettings');
+  Future<void> openSoundSettings() =>
+      channel.invokeMethod<void>('openSoundSettings');
+  Future<void> previewAlarm() => channel.invokeMethod<void>('previewAlarm');
+  Future<Map<String, dynamic>> usageReminderStatus() async =>
+      await channel.invokeMapMethod<String, dynamic>('usageReminderStatus') ??
+      {};
+  Future<void> testUsageReminder() =>
+      channel.invokeMethod<void>('testUsageReminder');
+  Future<Map<String, dynamic>> usageWeek(String start) async =>
+      await channel.invokeMapMethod<String, dynamic>('usageWeek', start) ??
+      {'granted': false, 'apps': [], 'days': []};
+  Future<Map<String, dynamic>> usageDay(String date) async =>
+      await channel.invokeMapMethod<String, dynamic>('usageDay', date) ??
+      {'granted': false, 'apps': [], 'days': []};
   Future<Map<String, dynamic>> guardStatus() async =>
       await channel.invokeMapMethod<String, dynamic>('guardStatus') ?? {};
   Future<List<Map<String, dynamic>>> guardEvents() async =>

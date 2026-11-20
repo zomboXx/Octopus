@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'brain_store.dart';
 import 'flow_design.dart';
+import 'plans_screen.dart';
 import 'main.dart' show HomeShell, Panel, blue, muted;
 
 class AppEntry extends StatelessWidget {
@@ -71,12 +72,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     });
   }
 
+  Future<void> startAsGuest() async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    widget.store.profile['authMode'] = 'guest';
+    await widget.store.save();
+    if (!mounted) return;
+    setState(() {
+      busy = false;
+      error = widget.store.storageError;
+    });
+    if (error != null) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            WidgetSetupScreen(store: widget.store, onboarding: true),
+      ),
+    );
+  }
+
   void signIn(String provider) => showDialog<void>(
     context: context,
     builder: (c) => AlertDialog(
       title: Text('Đăng nhập bằng $provider'),
       content: const Text(
-        'Bản thử nghiệm chưa được kết nối dịch vụ đăng nhập. Bạn có thể dùng không đăng nhập và giữ dữ liệu trên điện thoại. Khi dịch vụ sẵn sàng, bạn sẽ có thể liên kết tài khoản từ hồ sơ.',
+        'Bản này hỗ trợ dùng không đăng nhập. Bạn có thể bắt đầu ngay và lưu dữ liệu trên điện thoại.',
       ),
       actions: [
         TextButton(
@@ -97,7 +121,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Row(
             children: [
               const OctopusLogo(size: 40),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               const Text(
                 'Octopus',
                 style: TextStyle(
@@ -156,7 +180,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             step == 0
                 ? 'Không cần tài khoản để bắt đầu. Cho Octopus biết bạn là ai và điều bạn muốn dành thời gian.'
-                : 'Bạn có thể dùng ngay trên máy này, rồi liên kết tài khoản khi dịch vụ sẵn sàng.',
+                : 'Bạn có thể dùng Octopus ngay trên thiết bị này.',
             style: const TextStyle(fontSize: 12, color: muted, height: 1.6),
           ),
           const SizedBox(height: 24),
@@ -296,28 +320,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: busy
-                          ? null
-                          : () async {
-                              widget.store.profile['authMode'] = 'guest';
-                              await widget.store.save();
-                              if (!context.mounted ||
-                                  widget.store.storageError != null) {
-                                return;
-                              }
-                              await Navigator.push<void>(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => WidgetSetupScreen(
-                                    store: widget.store,
-                                    onboarding: true,
-                                  ),
-                                ),
-                              );
-                            },
-                      child: const Text('Dùng không đăng nhập'),
+                      onPressed: busy ? null : startAsGuest,
+                      child: Text(busy ? 'Đang lưu…' : 'Dùng không đăng nhập'),
                     ),
                   ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Text(
+                        error!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -333,22 +347,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            for (final provider in ['Google', 'Facebook', 'Số điện thoại'])
+            for (final (provider, logo) in [
+              (
+                'Google',
+                Image.asset('assets/google_g.png', width: 20, height: 20),
+              ),
+              (
+                'Facebook',
+                const Icon(Icons.facebook, color: Color(0xFF0866FF), size: 20),
+              ),
+              (
+                'Số điện thoại',
+                const Icon(Icons.phone_iphone_rounded, size: 20),
+              ),
+            ])
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: OutlinedButton(
-                  onPressed: () => signIn(provider),
+                child: OutlinedButton.icon(
+                  onPressed: busy ? null : () => signIn(provider),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: flowLine),
                   ),
-                  child: Text(
-                    '$provider · chưa kết nối',
-                    style: const TextStyle(fontSize: 12),
-                  ),
+                  icon: ExcludeSemantics(child: logo),
+                  label: Text(provider, style: const TextStyle(fontSize: 12)),
                 ),
               ),
             TextButton(
-              onPressed: () => setState(() => step = 0),
+              onPressed: busy
+                  ? null
+                  : () => setState(() {
+                      error = null;
+                      step = 0;
+                    }),
               child: const Text('Sửa thông tin cá nhân'),
             ),
           ],
@@ -391,6 +421,15 @@ class ProfileScreen extends StatelessWidget {
           style: TextStyle(color: muted),
         ),
         const SizedBox(height: 24),
+        FilledButton.tonalIcon(
+          onPressed: () => Navigator.push<void>(
+            context,
+            MaterialPageRoute(builder: (_) => const PlansScreen()),
+          ),
+          icon: const Icon(Icons.workspace_premium_outlined),
+          label: const Text('Gói Octopus'),
+        ),
+        const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: () => Navigator.push<void>(
             context,
@@ -405,7 +444,7 @@ class ProfileScreen extends StatelessWidget {
           style: TextStyle(color: muted),
         ),
         const SizedBox(height: 24),
-        const FlowTag('Octopus · 0.6.3'),
+        const FlowTag('Octopus · 0.6.8'),
       ],
     ),
   );
@@ -414,7 +453,12 @@ class ProfileScreen extends StatelessWidget {
 class _WidgetSetupScreenState extends State<WidgetSetupScreen>
     with WidgetsBindingObserver {
   Map<String, dynamic> status = {};
-  String? error;
+  String? statusError;
+  String? saveError;
+  bool saving = false;
+
+  static const manualInstructions =
+      'Để thêm thủ công, nhấn giữ chỗ trống trên màn hình chính, chọn Widget, tìm Octopus rồi kéo widget vào chỗ trống.';
   @override
   void initState() {
     super.initState();
@@ -439,143 +483,158 @@ class _WidgetSetupScreenState extends State<WidgetSetupScreen>
       if (mounted) {
         setState(() {
           status = value;
-          error = null;
+          statusError = null;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => error = 'Chưa đọc được widget. Hãy thử lại.');
-    }
-  }
-
-  Future<void> pin(String kind) async {
-    try {
-      final sent = await widget.store.device.pinWidget(kind);
-      if (!mounted) return;
-      setState(
-        () => error = sent
-            ? 'Xác nhận Thêm trong hộp thoại Android, rồi quay lại kiểm tra.'
-            : 'Nhấn giữ màn hình chính → Widget → Octopus → kéo widget ra màn hình.',
-      );
-    } catch (_) {
       if (mounted) {
         setState(
-          () => error =
-              'Nhấn giữ màn hình chính → Widget → Octopus để thêm thủ công.',
+          () => statusError = 'Chưa đọc được trạng thái widget. Hãy thử lại.',
         );
       }
     }
   }
 
+  Future<void> pin(String kind) async {
+    var sent = false;
+    try {
+      sent = await widget.store.device.pinWidget(kind);
+    } catch (_) {} // Some launchers decline requests from the app.
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.removeCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          sent
+              ? 'Xác nhận Thêm nếu Android hiện hộp thoại. Nếu không thấy, hãy thêm thủ công.'
+              : manualInstructions,
+        ),
+      ),
+    );
+  }
+
   Future<void> complete() async {
-    widget.store.onboardingComplete = true;
-    await widget.store.save();
+    if (saving) return;
+    setState(() {
+      saving = true;
+      saveError = null;
+    });
+    await widget.store.save(finishOnboarding: true);
     if (!mounted) return;
     if (widget.store.storageError != null) {
-      setState(() => error = widget.store.storageError);
+      setState(() {
+        saveError = widget.store.storageError;
+        saving = false;
+      });
       return;
     }
     Navigator.pop(context);
   }
 
   @override
-  Widget build(BuildContext context) {
-    final ready = status['tasks'] == true && status['focus'] == true;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Đưa Octopus ra màn hình chính')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            if (widget.onboarding)
-              const Text(
-                'BƯỚC 3 / 3',
-                style: TextStyle(color: muted, letterSpacing: 2, fontSize: 11),
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Đưa Octopus ra màn hình chính')),
+    bottomNavigationBar: widget.onboarding
+        ? SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (saveError != null)
+                    Text(saveError!, style: const TextStyle(color: Colors.red)),
+                  FilledButton(
+                    onPressed: saving ? null : complete,
+                    child: Text(saving ? 'Đang lưu…' : 'Bắt đầu dùng Octopus'),
+                  ),
+                ],
               ),
-            const SizedBox(height: 14),
-            const Text(
-              'Điều quan trọng,\nngay trước mắt.',
-              style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 14),
+          )
+        : null,
+    body: SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          if (widget.onboarding)
             const Text(
-              'Thêm hai widget để ghi việc nhanh và bắt đầu một khoảng tập trung.',
+              'BƯỚC 3 / 3',
+              style: TextStyle(color: muted, letterSpacing: 2, fontSize: 11),
+            ),
+          const SizedBox(height: 14),
+          const Text(
+            'Điều quan trọng,\nngay trước mắt.',
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 14),
+          if (widget.onboarding) ...[
+            const Text(
+              'Bạn có thể vào app ngay và thêm widget sau trong Hồ sơ.',
               style: TextStyle(color: muted),
             ),
-            const SizedBox(height: 24),
-            for (final item in [
-              (
-                'tasks',
-                Icons.checklist_rounded,
-                'Nhịp hôm nay (4×2)',
-                'Phiên đang chạy, đếm ngược trực tiếp, check-out một chạm và việc tiếp theo.',
-              ),
-              (
-                'focus',
-                Icons.center_focus_strong,
-                'Ghi nhanh (2×2)',
-                'Nhập hoặc nói một việc; bắt đầu Focus 30 phút. Lần đầu sẽ giải thích quyền bảo vệ.',
-              ),
-            ]) ...[
-              Panel(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(item.$2, color: blue, size: 30),
-                    const SizedBox(height: 12),
-                    Text(
-                      item.$3,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(item.$4, style: const TextStyle(color: muted)),
-                    const SizedBox(height: 14),
-                    OutlinedButton.icon(
-                      onPressed: () => pin(item.$1),
-                      icon: Icon(
-                        status[item.$1] == true
-                            ? Icons.check_circle
-                            : Icons.add,
-                      ),
-                      label: Text(
-                        status[item.$1] == true
-                            ? 'Đã có trên màn hình'
-                            : 'Thêm widget ${item.$3.toLowerCase()}',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-            if (error != null)
-              Text(error!, style: const TextStyle(color: muted)),
-            TextButton.icon(
-              onPressed: refresh,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Kiểm tra widget đã thêm'),
-            ),
-            if (widget.onboarding) ...[
-              FilledButton(
-                onPressed: ready ? complete : null,
-                child: const Text('Bắt đầu dùng Octopus'),
-              ),
-              if (status['supported'] == false)
-                TextButton(
-                  onPressed: complete,
-                  child: const Text('Tiếp tục, thêm thủ công sau'),
-                ),
-              const SizedBox(height: 10),
-              const Text(
-                'Android cần bạn xác nhận thêm từng widget. Nếu máy không hỗ trợ thêm tự động, bạn có thể thêm trong danh sách Widget.',
-                style: TextStyle(fontSize: 12, color: muted),
-              ),
-            ],
+            const SizedBox(height: 8),
           ],
-        ),
+          const Text(manualInstructions, style: TextStyle(color: muted)),
+          const SizedBox(height: 24),
+          for (final item in [
+            (
+              'tasks',
+              Icons.checklist_rounded,
+              'Nhịp hôm nay (4×2)',
+              'Phiên đang chạy, đếm ngược trực tiếp, check-out một chạm và việc tiếp theo.',
+            ),
+            (
+              'focus',
+              Icons.center_focus_strong,
+              'Ghi nhanh (2×2)',
+              'Nhập hoặc nói một việc; bắt đầu Focus 30 phút. Lần đầu sẽ giải thích quyền bảo vệ.',
+            ),
+          ]) ...[
+            Panel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(item.$2, color: blue, size: 30),
+                  const SizedBox(height: 12),
+                  Text(
+                    item.$3,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(item.$4, style: const TextStyle(color: muted)),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: status[item.$1] == true || saving
+                        ? null
+                        : () => pin(item.$1),
+                    icon: Icon(
+                      status[item.$1] == true ? Icons.check_circle : Icons.add,
+                    ),
+                    label: Text(
+                      status[item.$1] == true
+                          ? 'Đã có trên màn hình'
+                          : 'Thêm widget ${item.$3.toLowerCase()}',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (statusError != null)
+            Text(statusError!, style: const TextStyle(color: muted)),
+          TextButton.icon(
+            onPressed: refresh,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Kiểm tra widget đã thêm'),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

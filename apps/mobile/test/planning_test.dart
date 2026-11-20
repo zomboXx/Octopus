@@ -21,6 +21,29 @@ class ActionDevice extends MemoryDevice {
   }
 }
 
+class UnpinnedWidgetDevice extends MemoryDevice {
+  bool failNextWrite = false;
+
+  @override
+  Future<Map<String, dynamic>> widgetStatus() async => {
+    'supported': true,
+    'tasks': false,
+    'focus': false,
+  };
+
+  @override
+  Future<bool> pinWidget(String kind) async => false;
+
+  @override
+  Future<void> writeState(String json) async {
+    if (failNextWrite) {
+      failNextWrite = false;
+      throw StateError('Storage unavailable');
+    }
+    await super.writeState(json);
+  }
+}
+
 void main() {
   testWidgets(
     'widget action adds tomorrow after completed day and starts one focus session',
@@ -217,9 +240,10 @@ void main() {
   });
 
   testWidgets(
-    'first run requires name and birthday, then guest and verified widgets',
+    'first run saves the guest profile and can finish without any widgets',
     (tester) async {
-      final store = BrainStore(device: MemoryDevice());
+      final device = UnpinnedWidgetDevice();
+      final store = BrainStore(device: device);
       await tester.pumpWidget(OctopusApp(store: store));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('profile-name')), findsOneWidget);
@@ -250,18 +274,48 @@ void main() {
       await tester.tap(find.text('Tiếp tục'));
       await tester.pumpAndSettle();
       expect(store.profile['birthday'], '2005-01-01');
+      for (final provider in ['Google', 'Facebook', 'Số điện thoại']) {
+        await tester.scrollUntilVisible(find.text(provider), 200);
+        expect(find.widgetWithText(OutlinedButton, provider), findsOneWidget);
+      }
       await tester.ensureVisible(find.text('Dùng không đăng nhập'));
       await tester.tap(find.text('Dùng không đăng nhập'));
       await tester.pumpAndSettle();
+      final start = find.text('Bắt đầu dùng Octopus');
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.ancestor(of: start, matching: find.byType(FilledButton)),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      final addWidget = find.text('Thêm widget nhịp hôm nay (4×2)');
       await tester.scrollUntilVisible(
-        find.text('Bắt đầu dùng Octopus'),
-        250,
+        addWidget,
+        200,
         scrollable: find.byType(Scrollable).last,
       );
-      await tester.tap(find.text('Bắt đầu dùng Octopus'));
+      await tester.tap(addWidget);
+      await tester.pumpAndSettle();
+      expect(find.byType(SnackBar), findsOneWidget);
+      ScaffoldMessenger.of(tester.element(start)).removeCurrentSnackBar();
+      await tester.pumpAndSettle();
+      device.failNextWrite = true;
+      await tester.tap(start);
+      await tester.pumpAndSettle();
+      expect(store.onboardingComplete, isFalse);
+      expect(
+        find.text('Chưa lưu được thay đổi trên máy. Hãy thử lại.'),
+        findsOneWidget,
+      );
+      await tester.tap(start);
       await tester.pumpAndSettle();
       expect(store.onboardingComplete, isTrue);
       expect(store.profile['authMode'], 'guest');
+      final reloaded = BrainStore(device: device);
+      await reloaded.load();
+      expect(reloaded.onboardingComplete, isTrue);
       expect(find.textContaining('Một ngày có chủ đích.'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());

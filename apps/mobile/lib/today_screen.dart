@@ -1,3 +1,6 @@
+import 'record_actions.dart';
+import 'task_editor.dart';
+import 'activity_history.dart';
 import 'package:flutter/material.dart';
 import 'brain_store.dart';
 import 'flow_design.dart';
@@ -26,6 +29,7 @@ class TodayScreen extends StatelessWidget {
     final now = DateTime.now();
     final date = DateTime(now.year, now.month, now.day + day);
     final entries = store.workOn(date);
+    final overdue = day == 0 ? store.overdueWork(now) : const [];
     final done = entries.where((t) => t['done'] == true).length;
     final progress = entries.isEmpty ? 0.0 : done / entries.length;
     final rawName = (store.profile['name'] as String? ?? '').trim();
@@ -132,7 +136,11 @@ class TodayScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      day == 0 ? 'Việc hôm nay' : 'Việc ngày mai',
+                      day == 0
+                          ? 'Việc hôm nay'
+                          : day == 1
+                          ? 'Việc ngày mai'
+                          : 'Việc ngày ${dateText(date)}',
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
@@ -160,7 +168,8 @@ class TodayScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              Row(
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   for (final d in [0, 1]) ...[
                     ChoiceChip(
@@ -179,6 +188,28 @@ class TodayScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                   ],
+                  TextButton.icon(
+                    onPressed: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: date,
+                        firstDate: DateTime(1900),
+                        lastDate: DateTime(now.year + 5, 12, 31),
+                        helpText: 'Ngày công việc',
+                      );
+                      if (picked != null) {
+                        changeDay(
+                          DateTime.utc(picked.year, picked.month, picked.day)
+                              .difference(
+                                DateTime.utc(now.year, now.month, now.day),
+                              )
+                              .inDays,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.calendar_today_outlined, size: 16),
+                    label: const Text('Chọn ngày'),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -227,14 +258,59 @@ class TodayScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-              if (store.activities.isNotEmpty) ...[
+              if (overdue.isNotEmpty) ...[
                 const SizedBox(height: 20),
-                const Text(
-                  'Những điều đã làm',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                Text(
+                  'Chưa xong từ trước (${overdue.length})',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 10),
-                ...store.activities.reversed.take(2).map(activityCard),
+                FlowCard(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 3,
+                  ),
+                  child: Column(
+                    children: [
+                      for (final entry in overdue) ...[
+                        _task(
+                          context,
+                          entry.item,
+                          now,
+                          overdueDate: DateTime.tryParse(entry.date),
+                          canMove: entry.canMove,
+                        ),
+                        if (entry != overdue.last)
+                          const Divider(height: 1, color: flowLine),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+              if (store.activities.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Những điều đã làm',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => openActivityHistory(context, store),
+                      child: Text('Xem tất cả (${store.activities.length})'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ...historyRecords(store).take(2).map(activityCard),
               ],
             ],
           ),
@@ -289,7 +365,13 @@ class TodayScreen extends StatelessWidget {
     );
   }
 
-  Widget _task(BuildContext context, Map<String, dynamic> task, DateTime now) {
+  Widget _task(
+    BuildContext context,
+    Map<String, dynamic> task,
+    DateTime now, {
+    DateTime? overdueDate,
+    bool canMove = false,
+  }) {
     final start = DateTime.tryParse(task['start'] ?? '')?.toLocal();
     final end = DateTime.tryParse(task['end'] ?? '')?.toLocal();
     final completed = task['done'] == true;
@@ -344,24 +426,46 @@ class TodayScreen extends StatelessWidget {
                       ),
                     ),
                     const Spacer(),
+                    if (store.tasks.contains(task))
+                      TaskActions(store: store, task: task),
                     Text(
-                      start != null ? clockText(start) : 'Linh hoạt',
+                      overdueDate != null
+                          ? dateText(overdueDate)
+                          : start != null
+                          ? clockText(start)
+                          : 'Linh hoạt',
                       style: const TextStyle(fontSize: 10, color: flowMuted),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  task['title'],
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    height: 1.35,
-                    letterSpacing: -.2,
-                    color: completed ? flowMuted : flowInk,
-                    decoration: completed ? TextDecoration.lineThrough : null,
+                InkWell(
+                  onTap: store.tasks.contains(task)
+                      ? () => showDialog<void>(
+                          context: context,
+                          builder: (_) => TaskEditor(store: store, task: task),
+                        )
+                      : null,
+                  child: Text(
+                    task['title'],
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                      letterSpacing: -.2,
+                      color: completed ? flowMuted : flowInk,
+                      decoration: completed ? TextDecoration.lineThrough : null,
+                    ),
                   ),
                 ),
+                if ((task['note'] ?? '').toString().isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      task['note'],
+                      style: const TextStyle(fontSize: 12, color: flowMuted),
+                    ),
+                  ),
                 if ((task['expectedOutput'] ?? '').toString().isNotEmpty) ...[
                   const SizedBox(height: 5),
                   Text(
@@ -402,6 +506,19 @@ class TodayScreen extends StatelessWidget {
                     ],
                   ],
                 ),
+                if (canMove)
+                  TextButton.icon(
+                    icon: const Icon(Icons.today_outlined, size: 15),
+                    label: const Text('Dời sang hôm nay'),
+                    onPressed: () async {
+                      await store.moveTaskToToday(task);
+                      if (context.mounted && store.storageError != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(store.storageError!)),
+                        );
+                      }
+                    },
+                  ),
                 if ((task['reflection'] ?? '').toString().isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
