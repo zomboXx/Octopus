@@ -4,9 +4,9 @@
 
 - [Website giới thiệu](https://zomboxx.github.io/Octopus/) có nút tải APK.
 - [Bản trải nghiệm web](https://zomboxx.github.io/Octopus/try/) có hồ sơ mẫu, công việc, bộ đếm tập trung và kế hoạch học mẫu.
-- [Bản APK và mã nguồn tương ứng](https://github.com/zomboXx/Octopus/releases/tag/v0.6.3-ae.1) được gắn cùng một tag trên GitHub.
+- [Bản APK và mã nguồn tương ứng](https://github.com/zomboXx/Octopus/releases/tag/v0.6.8-ae.2) được gắn cùng một tag trên GitHub.
 
-Bản công khai dùng kế hoạch mẫu. APK hỗ trợ Android 7.0 trở lên và có thể cài song song với Brain10.
+Bản công khai có AI Starter và kế hoạch mẫu. APK hỗ trợ Android 7.0 trở lên.
 
 ## Chạy website bằng Docker Compose
 
@@ -25,7 +25,7 @@ Mở [trang giới thiệu cục bộ](http://127.0.0.1:4174/) hoặc [bản tr�
 ## Cài APK trên Android Emulator
 
 1. Mở Android Studio → **Device Manager**, tạo hoặc mở một máy ảo Android.
-2. Kéo file APK đã tải vào cửa sổ emulator. Cũng có thể chạy `adb install -r octopus-0.6.3-android-debug.apk` khi chỉ có một thiết bị kết nối.
+2. Kéo file APK đã tải vào cửa sổ emulator. Cũng có thể chạy `adb install -r octopus-0.6.8-android-debug.apk` khi chỉ có một thiết bị kết nối.
 3. Mở **Octopus**, chọn **Dùng không đăng nhập**, rồi thử tab **Hôm nay**, **Lịch trình** và **Tập trung**.
 
 Để tự build APK từ mã nguồn, xem [hướng dẫn Android](../apps/mobile/README.md).

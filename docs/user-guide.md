@@ -1,6 +1,6 @@
 # Hướng dẫn sử dụng Octopus
 
-Octopus 0.6.3 là bản thử nghiệm Android. Khi mở lần đầu, nhập họ tên và ngày sinh, chọn mục tiêu chính rồi chọn **Dùng không đăng nhập**. Hồ sơ khách và hoạt động được lưu trên thiết bị. Octopus có vùng dữ liệu riêng khi cài cạnh Brain10.
+Octopus là ứng dụng thử nghiệm trên Android. Khi mở lần đầu, nhập họ tên và ngày sinh, chọn mục tiêu chính rồi chọn **Dùng không đăng nhập**. Hồ sơ khách và hoạt động được lưu trên thiết bị.
 
 ## Công việc và hoạt động
 

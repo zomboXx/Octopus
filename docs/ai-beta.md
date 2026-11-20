@@ -1,4 +1,10 @@
-# Cấu hình AI beta
+# Cấu hình AI
+
+Bản web công khai và APK bán kết có thể tạo lịch AI ở chế độ Starter. Mỗi bản cài hoặc trình duyệt có 5 lượt lập lịch mỗi tháng. Sau khi xem bản nháp, người dùng chọn các buổi muốn lưu. Trong bản web, mục **Thử lịch mẫu** dùng được khi dịch vụ AI tạm gián đoạn.
+
+[Cấu hình triển khai](deployment.md#api-lập-lịch-công-khai)
+
+## AI beta trên máy phát triển
 
 AI beta tạo bản nháp lịch ôn tập. Cả Android lẫn web cần lịch cố định và nhịp học trước khi tạo đề xuất. Máy chủ giữ khóa nhà cung cấp trong biến môi trường `POOL_API_KEY`. APK chỉ nhận URL backend qua `OCTOPUS_API_URL`.
 

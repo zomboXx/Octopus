@@ -26,6 +26,10 @@ Danh mục dựa trên các lockfile kèm source, ngày 12/11/2026. Kê khai the
 - Payload gồm mục tiêu, ngữ cảnh học, lịch cố định, nhịp học và khung giờ ứng viên. Họ tên, ngày sinh, nhật ký, ảnh và thống kê sử dụng nằm ngoài payload lập lịch. Tên lịch và nội dung người dùng nhập có thể chứa dữ liệu cá nhân, nên chỉ dùng dữ liệu minh họa khi chấm thử.
 - AI tạo bản nháp nội dung và chọn khung ứng viên. Mã của nhóm tính giờ khả dụng, kiểm tra ràng buộc, hiển thị để người dùng xác nhận rồi lưu. Chưa có chatbot đa lượt hoặc fine-tuning trên dữ liệu người dùng.
 
+## AI chạy trong trình duyệt
+
+Trong bản web, người dùng có thể chọn **Dùng AI trên thiết bị**. Khi được chọn, trình duyệt tải [Transformers.js 3.8.1](https://github.com/huggingface/transformers.js/tree/3.8.1) qua jsDelivr và tải [trọng số Qwen2.5-0.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-0.5B-Instruct) từ Hugging Face. Thư viện theo Apache-2.0, mô hình áp dụng giấy phép ghi ở trang mô hình. Nguồn và trọng số được phục vụ từ bên thứ ba khi chạy.
+
 ## Công cụ AI và tài nguyên hỗ trợ phát triển
 
 Nhóm có sử dụng Codex để hỗ trợ lập trình, rà soát, tài liệu và đóng gói; ImageGen hỗ trợ chuẩn hóa logo từ hình tham chiếu của nhóm. Video được dựng bằng Remotion, giọng đọc VBEE do nhóm cung cấp. Các công cụ này không phải dịch vụ được app gọi khi ban giám khảo chạy thử. Source ứng dụng không chứa nhạc, footage tham khảo, file giọng đọc hoặc dự án video.

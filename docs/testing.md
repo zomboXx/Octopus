@@ -14,7 +14,7 @@ Playwright tự mở website cục bộ. Dùng `OCTOPUS_TEST_URL` để chạy s
 
 ## Android Emulator và thiết bị
 
-Dùng AVD Android 13 API 33 để thử nhanh. Trên Windows, helper `scripts/android-dev.ps1` trong `apps/mobile` làm việc với AVD tên `Brain10_API_33`. Có thể chọn AVD khác bằng Android Studio và chạy `flutter run` trực tiếp.
+Dùng AVD Android 13 API 33 để thử nhanh. Trên Windows, helper `scripts/android-dev.ps1` trong `apps/mobile` làm việc với AVD tên `Octopus_API_33`. Có thể chọn AVD khác bằng Android Studio và chạy `flutter run` trực tiếp.
 
 1. Kiểm tra tên Octopus, biểu tượng launcher, màn hình chào và tab Hôm nay.
 2. Tạo một công việc mẫu, check-out, khởi động lại app rồi xác nhận dữ liệu còn trong danh sách.

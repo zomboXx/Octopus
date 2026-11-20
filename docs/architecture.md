@@ -1,6 +1,6 @@
 # Kiến trúc Octopus
 
-Octopus gồm ba ứng dụng trong cùng repo. Android là app chính. Website giới thiệu sản phẩm, cung cấp bản trải nghiệm và có hàm gọi AI beta. API cục bộ phục vụ Android trong môi trường phát triển.
+Octopus gồm ba ứng dụng trong cùng repo. Android là app chính. Website giới thiệu sản phẩm và cung cấp bản trải nghiệm trên trình duyệt. Web và Android gọi API lập lịch Octopus để tạo bản nháp với hạn mức Starter.
 
 ## Mã nguồn và trách nhiệm
 
@@ -13,6 +13,8 @@ Octopus gồm ba ứng dụng trong cùng repo. Android là app chính. Website 
 | [`apps/website/api/plans.mjs`](../apps/website/api/plans.mjs) | Nhận yêu cầu beta từ web hoặc Android qua HTTPS, kiểm tra mã truy cập và chuyển cho bộ lập lịch. |
 | [`apps/website/server/planner.mjs`](../apps/website/server/planner.mjs) | Chuẩn hóa dữ liệu, tính khung rảnh, gọi mô hình và kiểm tra bản nháp. |
 | [`apps/api/server.mjs`](../apps/api/server.mjs) | API phát triển chạy ở loopback và dùng cùng bộ lập lịch. |
+
+| [`apps/api/planning-gateway.mjs`](../apps/api/planning-gateway.mjs) | API công khai cho web và Android. Chuyển yêu cầu và mã thử lại sang dịch vụ lập lịch, giữ cấu hình máy chủ trong Sites. |
 
 ## Luồng lập lịch AI
 

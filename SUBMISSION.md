@@ -1,6 +1,6 @@
 # Octopus — mã nguồn nộp AI in Economics 2026
 
-Nhóm Octopus gồm Nguyễn Đức Phát, Nguyễn Hoàng Phương Linh, Trần Thị Tuyết Nhi và Đường Khánh Ngọc. Sản phẩm tiếp nối Brain10 của cùng bốn thành viên. Bản nộp gồm ứng dụng Android 0.6.3, website, API lập lịch, kiểm thử và tài liệu; video và PDF thuyết minh nộp riêng.
+Nhóm Octopus gồm Nguyễn Đức Phát, Nguyễn Hoàng Phương Linh, Trần Thị Tuyết Nhi và Đường Khánh Ngọc. Bản nộp gồm ứng dụng Android 0.6.8, website, API lập lịch, kiểm thử và tài liệu; video và PDF thuyết minh nộp riêng.
 
 ## 1. Chạy web nhanh từ ZIP
 
@@ -16,12 +16,12 @@ Không có Docker: cài Node.js 22 trở lên, vào `apps/website`, chạy `npm 
 
 ## 2. Chạy Android
 
-Docker phục vụ web/API. Android Emulator chạy riêng bằng Android Studio; máy cần hỗ trợ ảo hóa. Tải [APK debug 0.6.3](https://github.com/zomboXx/Octopus/releases/download/v0.6.3-ae.1/octopus-0.6.3-android-debug.apk), kéo vào emulator Android 7.0 trở lên, mở Octopus và chọn **Dùng không đăng nhập**.
+Docker phục vụ web/API. Android Emulator chạy riêng bằng Android Studio; máy cần hỗ trợ ảo hóa. Tải [APK debug 0.6.8](https://github.com/zomboXx/Octopus/releases/download/v0.6.8-ae.2/octopus-0.6.8-android-debug.apk), kéo vào emulator Android 7.0 trở lên, mở Octopus và chọn **Dùng không đăng nhập**.
 
 APK không nằm trong ZIP source. SHA-256 của APK phát hành:
 
 ```text
-D9A6FDA566FE6982D7B2DD985AEB66D424C7CF8F4AF53BCED940ECDF1E7F6EE2
+58E007230113EAA8BE23E127559545E541D32392288ECC390444A67E62BBEF0E
 ```
 
 Tự chạy từ source: môi trường tham chiếu Flutter 3.41.9 / Dart 3.11.5, JDK 17, Android SDK theo cấu hình Gradle. Cài Android SDK và chấp nhận giấy phép bằng `flutter doctor --android-licenses`, kiểm tra `flutter doctor`, mở emulator rồi chạy:
@@ -29,18 +29,16 @@ Tự chạy từ source: môi trường tham chiếu Flutter 3.41.9 / Dart 3.11.
 ```sh
 cd apps/mobile
 flutter pub get
-flutter run
+flutter run --dart-define=OCTOPUS_API_URL=https://octopus-planning.beadedeasel2.chatgpt.site
 ```
 
 Tạo APK bằng `flutter build apk --debug`; kết quả trong `build/app/outputs/flutter-apk/app-debug.apk`. Lần đầu cần Internet tải SDK/phụ thuộc. Các quyền Trợ năng, VPN và thống kê do người dùng cấp khi thử chức năng tương ứng. Xem [hướng dẫn sử dụng](docs/user-guide.md).
 
-## 3. AI thật (tùy chọn)
+## 3. Lập lịch AI
 
-Web công khai dùng lịch mẫu; APK phát hành chưa gắn backend AI công khai. Để chấm AI thật, sao chép `.env.example` ở gốc thành `.env`, điền `OCTOPUS_DEMO_API_KEY` của tài khoản riêng, chọn endpoint/model phù hợp rồi chạy lại Compose. API có thể phát sinh phí theo tài khoản nhà cung cấp. Key chỉ ở backend; không đưa vào Flutter hoặc web tĩnh.
+Mở tab **Lịch trình** trên [web](https://zomboxx.github.io/Octopus/try/) hoặc trong APK bán kết, rồi chọn **Lên kế hoạch cùng AI**. Dùng một mục tiêu học tập minh họa. Starter có 5 lượt mỗi tháng cho mỗi trình duyệt hoặc bản cài. Người dùng xem trước và chọn các buổi muốn lưu.
 
-Xem [hướng dẫn lấy mã beta và kết nối Android Emulator](docs/demo-setup.md#bật-ai-beta-trong-môi-trường-cục-bộ). Emulator dùng `http://10.0.2.2:4174` để tới máy chạy Compose. Thiết bị Android thật cần backend có địa chỉ truy cập được; `127.0.0.1` và `10.0.2.2` không phải địa chỉ dùng chung trên Internet.
-
-AI hỗ trợ tạo bản nháp kế hoạch từ đầu vào người dùng và lịch bận. Người dùng duyệt trước khi lưu. Chưa có chatbot hỏi đáp đa lượt, huấn luyện mô hình riêng hoặc đồng bộ nhóm giữa thiết bị.
+Nếu dịch vụ phản hồi chậm, web có **Thử lịch mẫu** và **Xếp lịch theo giờ rảnh**. Với bản chạy cục bộ, xem [cách dùng API lập lịch](docs/demo-setup.md#bật-ai-beta-trong-môi-trường-cục-bộ).
 
 ## 4. Kiểm thử và thành phần bên thứ ba
 

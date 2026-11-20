@@ -4,9 +4,15 @@ Repo đã có trang giới thiệu tại `/` và bản trải nghiệm tại `/t
 
 ## GitHub Pages
 
-[Website công khai](https://zomboxx.github.io/Octopus/) được xuất từ `apps/website/dist/` bằng [workflow Pages](../.github/workflows/pages.yml). Trang công khai hỗ trợ kế hoạch mẫu và tải APK từ GitHub Releases. Xem [hướng dẫn Docker Compose](demo-setup.md) để chạy backend AI cục bộ.
+[Website công khai](https://zomboxx.github.io/Octopus/) được xuất từ `apps/website/dist/` bằng [workflow Pages](../.github/workflows/pages.yml). Trang công khai dùng API Octopus để lập lịch Starter và có lịch mẫu để thử ngay. APK được tải từ GitHub Releases. Xem [hướng dẫn Docker Compose](demo-setup.md) để chạy backend AI cục bộ.
 
-## Cấu hình Vercel
+## API lập lịch công khai
+
+Web gửi yêu cầu đến `/api/plans` và Android dùng `/v1/plans` tại [máy chủ Octopus](https://octopus-planning.beadedeasel2.chatgpt.site/api/plans). GitHub Pages lấy URL qua biến `OCTOPUS_PUBLIC_PLANNING_URL` của workflow. Khi build APK, truyền origin của máy chủ qua `OCTOPUS_API_URL`. APK và web chỉ gửi thông tin cần cho việc lập lịch và dùng mã yêu cầu để giữ nguyên lượt khi gửi lại.
+
+Máy chủ Octopus dùng [Planning Gateway](../apps/api/planning-gateway.mjs), chạy trên Sites và chuyển yêu cầu tới dịch vụ AI có sẵn. Thiết lập `OCTOPUS_UPSTREAM_URL` và `OCTOPUS_UPSTREAM_REQUEST_HEADER` trong biến môi trường của Worker. Kho giữ hạn mức Starter nằm phía máy chủ. Kiểm tra `GET /api/plans` trước buổi demo. Lần gọi đầu sau thời gian nghỉ có thể phản hồi chậm.
+
+## Cấu hình Vercel cho môi trường beta riêng
 
 1. Import repo Octopus, đặt **Root Directory** thành `apps/website` và chọn **Framework Preset** là **Other**. Repo đã khai báo thư mục đầu ra `dist` và rewrite API. [Cấu hình trong repo](../apps/website/vercel.json)
 2. Để bật AI beta, đặt `POOL_API_KEY` và `OCTOPUS_WEB_ORIGIN` trong môi trường server. Origin là địa chỉ HTTPS của website, không kèm đường dẫn. Đường dẫn `/v1/plans` dành cho app trỏ tới cùng handler với `/api/plans`.

@@ -8,7 +8,7 @@ Trong thư mục này, dùng Flutter SDK tương thích với `pubspec.yaml` và
 
 ```sh
 flutter pub get
-flutter run
+flutter run --dart-define=OCTOPUS_API_URL=https://octopus-planning.beadedeasel2.chatgpt.site
 flutter analyze
 flutter test
 ```
@@ -23,7 +23,7 @@ Khởi động [API phát triển](../api/) trên máy. Trên Android Emulator, 
 flutter run --dart-define=OCTOPUS_API_URL=http://10.0.2.2:4180
 ```
 
-Để tạo APK với API đã cấu hình, dùng `./scripts/build-preview-apk.ps1 -WithAI -ApiUrl <url>`. Backend HTTPS yêu cầu mã beta. `POOL_API_KEY` chỉ được cấu hình ở backend. Khi chạy app không có URL API, người dùng vẫn có thể lập lịch thủ công và dùng các công cụ tập trung.
+Để tạo APK với API đã cấu hình, dùng `./scripts/build-preview-apk.ps1 -WithAI -ApiUrl <url>`. API công khai của Octopus dùng Starter với định danh khách. Khi dùng backend beta cục bộ có mã, truyền thêm `--dart-define=OCTOPUS_API_REQUIRE_CODE=true`. `POOL_API_KEY` chỉ được cấu hình ở backend. Khi chạy app không có URL API, người dùng vẫn có thể lập lịch thủ công và dùng các công cụ tập trung.
 
 ## Thư mục chính
 
