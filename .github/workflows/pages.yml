@@ -26,11 +26,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - name: Prepare static demo
+      - name: Prepare demo
+        env:
+          OCTOPUS_PUBLIC_PLANNING_URL: ${{ vars.OCTOPUS_PUBLIC_PLANNING_URL || 'https://octopus-planning.beadedeasel2.chatgpt.site/api/plans' }}
         run: |
           cp -a apps/website/dist "$RUNNER_TEMP/octopus-pages"
-          sed -i 's/<html lang="vi">/<html lang="vi" data-static-demo>/' "$RUNNER_TEMP/octopus-pages/try/index.html"
-          grep -q 'data-static-demo' "$RUNNER_TEMP/octopus-pages/try/index.html"
+          node apps/website/scripts/configure-planning.mjs "$RUNNER_TEMP/octopus-pages"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ runner.temp }}/octopus-pages
