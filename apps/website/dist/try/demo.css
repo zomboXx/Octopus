@@ -11,5 +11,3 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 .web-brand .brand-lockup,.app-wordmark{display:inline-flex;align-items:center;gap:8px;width:auto;height:auto;font-weight:800}.app-wordmark img{width:1.25em;height:1.25em;object-fit:contain}.brand-icon{object-fit:contain}
-
-#planner-code-field[hidden]{display:none}

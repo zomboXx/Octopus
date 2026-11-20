@@ -1,5 +1,23 @@
 import {test,expect} from '@playwright/test';
 
+test('only the local beta asks for an access code',async({page})=>{
+  let authorization;
+  await page.route('**/api/plans',route=>{
+    if(route.request().method()==='GET')return route.fulfill({json:{configured:true,accessRequired:true}});
+    authorization=route.request().headers().authorization;
+    return route.fulfill({status:401,json:{error:'Mã dùng thử không hợp lệ.'}});
+  });
+  await page.goto('/try/');
+  await page.getByRole('button',{name:'Dùng hồ sơ mẫu An',exact:true}).click();
+  await page.getByRole('button',{name:'Lịch trình',exact:true}).click();
+  await page.getByRole('button',{name:/Lên kế hoạch cùng AI/}).click();
+  await page.getByLabel('Mã thử AI của nhóm').fill('ma-thu-gia-lap');
+  await page.getByLabel('Bạn muốn đạt điều gì?').fill('Ôn SQL JOIN');
+  await page.getByRole('button',{name:'Tạo kế hoạch để xem trước',exact:true}).click();
+  await expect(page.getByRole('alert')).toContainText('Mã dùng thử không hợp lệ.');
+  expect(authorization).toBe('Bearer ma-thu-gia-lap');
+});
+
 test('AI errors move into view on a small phone and preserve the entered goal',async({page})=>{
   await page.setViewportSize({width:320,height:640});
   await page.route('**/api/plans',route=>route.fulfill({status:401,json:{error:'Dịch vụ AI đang bận. Vui lòng thử lại sau.'}}));
