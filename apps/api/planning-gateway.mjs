@@ -3,6 +3,7 @@ const maxBytes = 100_000;
 const requestIdHeader = 'X-Octopus-Request-Id';
 const guestPattern = /^Guest [a-f0-9]{64}$/;
 const requestIdPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
+const redirects = new Set([301, 302, 303, 307, 308]);
 
 async function readBody(request) {
   const reader = request.body?.getReader();
@@ -33,6 +34,26 @@ const requestErrors = {
 };
 
 export function createPlanningGateway({fetchUpstream = (url, options) => fetch(url, options)} = {}) {
+  async function callUpstream(upstream, options) {
+    let url = upstream;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const response = await fetchUpstream(url.href, {...options, redirect: 'manual'});
+      if (!redirects.has(response.status)) return response;
+      const location = response.headers.get('Location');
+      await response.body?.cancel();
+      if (!location) throw new Error('redirect without location');
+      const next = new URL(location, url);
+      if (next.origin !== upstream.origin || next.username || next.password) {
+        throw new Error('redirect to a different origin');
+      }
+      if (options.method === 'POST' && response.status === 303) {
+        throw new Error('redirect would change POST to GET');
+      }
+      url = next;
+    }
+    throw new Error('redirect limit reached');
+  }
+
   return async function handle(request, env) {
     const path = new URL(request.url).pathname;
     const origin = request.headers.get('Origin');
@@ -41,7 +62,8 @@ export function createPlanningGateway({fetchUpstream = (url, options) => fetch(u
       'Vary': 'Origin',
       ...(origin === allowedOrigin ? {'Access-Control-Allow-Origin': origin} : {}),
     };
-    const json = (data, status = 200) => Response.json(data, {status, headers});
+    const json = (data, status = 200, details = {}) =>
+      Response.json(data, {status, headers: {...headers, ...details}});
     if (path !== '/api/plans' && path !== '/v1/plans') return json({error: 'Không có đường dẫn này.'}, 404);
     if (origin && origin !== allowedOrigin) return json({error: 'Trang này chưa được cấp quyền gọi API.'}, 403);
     if (request.method === 'OPTIONS') {
@@ -79,7 +101,7 @@ export function createPlanningGateway({fetchUpstream = (url, options) => fetch(u
     const upstreamHeaders = new Headers({Accept: 'application/json'});
     if (token) upstreamHeaders.set('Authorization', token);
     const clientIp = request.headers.get('CF-Connecting-IP');
-    if (clientIp) upstreamHeaders.set('X-Forwarded-For', clientIp);
+    if (clientIp && request.method === 'POST') upstreamHeaders.set('X-Forwarded-For', clientIp);
     let body;
     if (request.method === 'POST') {
       if (Number(request.headers.get('Content-Length')) > maxBytes) {
@@ -96,17 +118,17 @@ export function createPlanningGateway({fetchUpstream = (url, options) => fetch(u
       upstreamHeaders.set(env.OCTOPUS_UPSTREAM_REQUEST_HEADER, requestId);
     }
     try {
-      const response = await fetchUpstream(upstream, {
+      const response = await callUpstream(upstream, {
         method: request.method,
         headers: upstreamHeaders,
         body,
-        redirect: 'error',
         signal: AbortSignal.timeout(100_000),
       });
       if (!response.ok) {
         if (response.status >= 500) console.error('Planning upstream returned', response.status);
         const error = requestErrors[response.status] ?? 'Dịch vụ lập lịch đang gián đoạn. Hãy thử lại sau.';
-        return json({error}, response.status < 500 ? response.status : 502);
+        return json({error}, response.status < 500 ? response.status : 502,
+                    {'X-Octopus-Upstream': String(response.status)});
       }
       const data = await response.json();
       if (request.method === 'GET' && !token) {
@@ -115,12 +137,15 @@ export function createPlanningGateway({fetchUpstream = (url, options) => fetch(u
       }
       return json(data);
     } catch (error) {
-      const reason = /illegal invocation/i.test(error.message) ? 'invocation'
+      const reason = /different origin/i.test(error.message) ? 'redirect-origin'
+        : /redirect limit/i.test(error.message) ? 'redirect-limit'
+        : /illegal invocation/i.test(error.message) ? 'invocation'
         : /redirect/i.test(error.message) ? 'redirect'
         : /network|fetch|connection/i.test(error.message) ? 'network'
         : error.name;
       console.error('Planning upstream failed', reason);
-      return json({error: 'Dịch vụ lập lịch đang gián đoạn. Hãy thử lại sau.'}, 502);
+      return json({error: 'Dịch vụ lập lịch đang gián đoạn. Hãy thử lại sau.'}, 502,
+                  {'X-Octopus-Upstream': reason});
     }
   };
 }

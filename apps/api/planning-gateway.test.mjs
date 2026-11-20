@@ -26,7 +26,7 @@ test('allows the hosted demo to preflight and rejects a different origin', async
 test('translates the request ID and keeps it stable when submitted again', async () => {
   const attempts = [];
   const handle = createPlanningGateway({fetchUpstream: async (url, options) => {
-    assert.equal(url.href, env.OCTOPUS_UPSTREAM_URL);
+    assert.equal(url, env.OCTOPUS_UPSTREAM_URL);
     assert.equal(options.headers.get('Authorization'), authorization);
     assert.equal(options.headers.get('X-Forwarded-For'), '192.0.2.35');
     assert.equal(options.headers.get('X-Octopus-Request-Id'), null);
@@ -62,4 +62,24 @@ test('reports backend failures without forwarding internal error messages', asyn
   const result = await handle(new Request(base + '/v1/plans'), env);
   assert.equal(result.status, 502);
   assert.doesNotMatch((await result.json()).error, /provider detail/i);
+});
+
+test('preserves a request on same-origin redirects and rejects cross-origin forwarding', async () => {
+  const attempts = [];
+  const handle = createPlanningGateway({fetchUpstream: (url, options) => {
+    attempts.push([url, options.headers.get('Authorization'), options.body]);
+    if (attempts.length === 1) return Response.redirect(new URL('/v1/plans', url), 307);
+    if (attempts.length === 2) return Response.redirect('https://other.example/plans', 307);
+    assert.fail('The gateway must not forward a request to another origin');
+  }});
+  const result = await handle(new Request(base + '/api/plans', {
+    method: 'POST',
+    headers: {Authorization: authorization, 'X-Octopus-Request-Id': requestId},
+    body: '{}',
+  }), env);
+  assert.equal(result.status, 502);
+  assert.deepEqual(attempts, [
+    [env.OCTOPUS_UPSTREAM_URL, authorization, '{}'],
+    ['https://planner.example.test/v1/plans', authorization, '{}'],
+  ]);
 });
