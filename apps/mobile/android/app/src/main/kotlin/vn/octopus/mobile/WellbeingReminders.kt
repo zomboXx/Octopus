@@ -64,7 +64,7 @@ object WellbeingReminders {
             manager(context).cancel(ID)
         }
         val enabled = state.optBoolean("wellbeingReminders", true) &&
-            ProtectionState.prefs(context).getLong("cancelledFocusEnd", 0) != end
+            (!state.optBoolean("focusProtected", true) || ProtectionState.prefs(context).getLong("cancelledFocusEnd", 0) != end)
         val at = if (enabled) ReminderTiming.next(start, end, now, pref.getLong("delivered", 0)) else 0
         if (at == 0L) {
             alarm(context).cancel(pending(context))
@@ -85,7 +85,7 @@ object WellbeingReminders {
         val pref = prefs(context)
         val session = "$start:$end"
         val due = if (state.optBoolean("wellbeingReminders", true) && pref.getString("session", "") == session &&
-            ProtectionState.prefs(context).getLong("cancelledFocusEnd", 0) != end)
+            (!state.optBoolean("focusProtected", true) || ProtectionState.prefs(context).getLong("cancelledFocusEnd", 0) != end))
             ReminderTiming.due(start, end, System.currentTimeMillis(), pref.getLong("delivered", 0)) else 0
         pref.edit().putLong("scheduledAt", 0).commit()
         if (due > 0) {

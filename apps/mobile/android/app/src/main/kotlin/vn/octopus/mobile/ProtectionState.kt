@@ -3,6 +3,8 @@ package vn.octopus.mobile
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
+import android.content.ComponentName
+import android.provider.Settings
 import android.telecom.TelecomManager
 import org.json.JSONArray
 import org.json.JSONObject
@@ -25,7 +27,7 @@ object ProtectionState {
     fun period(context: Context, state: JSONObject = state(context), now: Long = System.currentTimeMillis()): ProtectedPeriod? {
         if (!options(state).optBoolean("enabled") || prefs(context).getBoolean("paused", false)) return null
         val start = time(state.optString("focusStart")); val end = time(state.optString("focusEnd"))
-        if (start <= now && end > now && end - start in 1..(480 * 60000L) && prefs(context).getLong("cancelledFocusEnd", 0) != end) {
+        if (state.optBoolean("focusProtected", true) && start <= now && end > now && end - start in 1..(480 * 60000L) && prefs(context).getLong("cancelledFocusEnd", 0) != end) {
             return ProtectedPeriod("focus:$end", "Phiên tập trung sâu", end, true)
         }
         val plan = state.optJSONArray("plan") ?: JSONArray()
@@ -83,7 +85,16 @@ object ProtectionState {
     }
     fun status(context: Context): Map<String, Any> {
         val state = state(context)
-        return mapOf("accessibility" to (FocusAccessibilityService.instance != null), "vpnPrepared" to (VpnService.prepare(context) == null),
+        val component = ComponentName(context, FocusAccessibilityService::class.java)
+        val enabledServices = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES).orEmpty()
+        val accessibilityEnabled = enabledServices.split(':').any { ComponentName.unflattenFromString(it) == component }
+        val audio = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        return mapOf("accessibility" to (accessibilityEnabled && FocusAccessibilityService.instance?.healthy == true),
+            "accessibilityEnabled" to accessibilityEnabled,
+            "notifications" to (context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager).areNotificationsEnabled(),
+            "alarmVolume" to audio.getStreamVolume(android.media.AudioManager.STREAM_ALARM),
+            "alarmMaxVolume" to audio.getStreamMaxVolume(android.media.AudioManager.STREAM_ALARM),
+            "vpnPrepared" to (VpnService.prepare(context) == null),
             "networkBlocked" to FocusVpnService.routed(context), "vpnService" to FocusVpnService.running, "droppedPackets" to FocusVpnService.droppedPackets,
             "enabled" to options(state).optBoolean("enabled"), "paused" to prefs(context).getBoolean("paused", false),
             "overlayVisible" to (FocusAccessibilityService.instance?.overlayVisible ?: false),

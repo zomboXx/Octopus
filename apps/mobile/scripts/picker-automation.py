@@ -27,8 +27,8 @@ def run(*parts):
         # Retry on the next poll instead of aborting the whole picker harness.
         return ''
 
-if 'Brain10_API_33' not in run('emu', 'avd', 'name').splitlines():
-    raise SystemExit('Refusing to drive a device other than Brain10_API_33')
+if 'Octopus_API_33' not in run('emu', 'avd', 'name').splitlines():
+    raise SystemExit('Refusing to drive a device other than Octopus_API_33')
 fixture = Path(__file__).resolve().parents[1] / 'integration_test/fixtures/activity.png'
 if not fixture.exists():
     raise SystemExit('Missing fixture: integration_test/fixtures/activity.png')

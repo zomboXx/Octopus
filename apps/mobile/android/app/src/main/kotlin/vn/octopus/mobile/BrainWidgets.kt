@@ -93,14 +93,21 @@ object BrainWidgets {
             val items = state.optJSONArray(key) ?: return emptyList()
             return (0 until items.length()).mapNotNull { items.optJSONObject(it) }
         }
-        val tasks = list("tasks").filter { it.optString("date", it.optString("createdAt").take(10)) == today }
-        val plan = list("plan").filter { it.optString("kind") != "break" && dateFormat.format(Date(ProtectionState.time(it.optString("start")))) == today }
+        fun taskDate(task: JSONObject) = task.optString("date", task.optString("createdAt").take(10))
+        fun planDate(session: JSONObject) = ProtectionState.time(session.optString("start")).takeIf { it > 0 }?.let { dateFormat.format(Date(it)) }
+        val allTasks = list("tasks")
+        val allSessions = list("plan").filter { it.optString("kind") != "break" }
+        val tasks = allTasks.filter { taskDate(it) == today }
+        val plan = allSessions.filter { planDate(it) == today }
+        val overdue = allTasks.count { !it.optBoolean("done") && taskDate(it).let { date -> date.isNotEmpty() && date < today } } +
+            allSessions.count { !it.optBoolean("done") && planDate(it)?.let { date -> date < today } == true }
         val work = (tasks + plan).sortedBy { if (it.has("start")) ProtectionState.time(it.optString("start")) else Long.MAX_VALUE }
         val pending = work.filter { !it.optBoolean("done") }
         val start = ProtectionState.time(state.optString("focusStart"))
         val end = ProtectionState.time(state.optString("focusEnd"))
+        val protected = state.optBoolean("focusProtected", true)
         val active = start in 1..now && end > now && end - start in 1..(480 * 60000L) &&
-            ProtectionState.prefs(context).getLong("cancelledFocusEnd", 0) != end
+            (!protected || ProtectionState.prefs(context).getLong("cancelledFocusEnd", 0) != end)
         val linked = pending.find { it.optString("id") == state.optString("focusTaskId") }
         val scheduled = pending.firstOrNull {
             val s = ProtectionState.time(it.optString("start"))
@@ -117,7 +124,7 @@ object BrainWidgets {
         val checkAction = if (current != null) "complete:${current.optString("id")}" else openAction
         val title = when {
             !onboarded -> "Mở Octopus để thiết lập"
-            active -> linked?.optString("title") ?: "Phiên tập trung sâu"
+            active -> linked?.optString("title") ?: if (protected) "Phiên tập trung sâu" else "Đang đếm giờ"
             current != null -> current.optString("title")
             finished -> "Bạn đã hoàn thành hôm nay"
             else -> "Chọn một việc quan trọng"
@@ -134,7 +141,8 @@ object BrainWidgets {
         val nextLabel = if (next != null) {
             val time = ProtectionState.time(next.optString("start"))
             "Tiếp: " + (if (time > 0) "${clock.format(Date(time))} · " else "") + next.optString("title")
-        } else if (active || current != null) "Tiếp: Một khoảng nghỉ nhỏ" else if (finished) "Lên việc cho ngày mai" else "Thêm việc cho ngày của bạn"
+        } else if (overdue > 0) "Xem $overdue việc chưa xong từ trước"
+        else if (active || current != null) "Tiếp: Một khoảng nghỉ nhỏ" else if (finished) "Lên việc cho ngày mai" else "Thêm việc cho ngày của bạn"
         for (id in manager.getAppWidgetIds(component(context, "tasks"))) {
             val views = RemoteViews(context.packageName, R.layout.widget_tasks).apply {
                 setTextViewText(R.id.widget_title, if (work.isEmpty()) "Chưa có việc hôm nay" else "${work.count { it.optBoolean("done") }} / ${work.size} việc đã hoàn thành")
@@ -151,7 +159,7 @@ object BrainWidgets {
                 setOnClickPendingIntent(R.id.widget_body, launch(context, openAction, 206))
                 setOnClickPendingIntent(R.id.widget_open, launch(context, openAction, 206))
                 setContentDescription(R.id.widget_open, if (active) "Mở phiên tập trung" else "Xem công việc")
-                setOnClickPendingIntent(R.id.widget_next_row, launch(context, if (work.isEmpty() || finished) "add_task" else "tasks", 208))
+                setOnClickPendingIntent(R.id.widget_next_row, launch(context, if (overdue == 0 && (work.isEmpty() || finished)) "add_task" else "tasks", 208))
                 setOnClickPendingIntent(R.id.widget_root, launch(context, "tasks", 202))
             }
             publish(manager, id, views, false)

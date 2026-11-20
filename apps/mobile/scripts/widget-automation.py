@@ -6,7 +6,7 @@ adb = str(Path(os.environ['LOCALAPPDATA']) / 'Android/Sdk/platform-tools/adb.exe
 pkg = 'vn.octopus.mobile'
 def run(*args):
     return subprocess.run([adb, '-s', 'emulator-5554', *args], capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=20).stdout
-if 'Brain10_API_33' not in run('emu', 'avd', 'name').splitlines(): raise SystemExit('Wrong AVD')
+if 'Octopus_API_33' not in run('emu', 'avd', 'name').splitlines(): raise SystemExit('Wrong AVD')
 def nodes():
     run('shell', 'rm', '-f', '/sdcard/octopus-widget-test.xml')
     run('shell', 'uiautomator', 'dump', '/sdcard/octopus-widget-test.xml')

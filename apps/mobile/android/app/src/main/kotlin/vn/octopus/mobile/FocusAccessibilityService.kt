@@ -4,8 +4,6 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.media.AudioManager
-import android.media.ToneGenerator
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -26,7 +24,10 @@ class FocusAccessibilityService : AccessibilityService() {
     private var view: LinearLayout? = null
     private var heading: TextView? = null
     private var description: TextView? = null
-    private var tone: ToneGenerator? = null
+    private var alarm: FocusAlarm? = null
+    private var connected = false
+    private var heartbeat = 0L
+    val healthy get() = connected && android.os.SystemClock.elapsedRealtime() - heartbeat < 10000
     private var muted = false
     private var cycleStarted = 0L
     private var cyclePeriod = ""
@@ -42,7 +43,12 @@ class FocusAccessibilityService : AccessibilityService() {
         }
     }
     override fun onServiceConnected() {
+        super.onServiceConnected()
+        handler.removeCallbacks(tick)
+        connected = true
+        heartbeat = android.os.SystemClock.elapsedRealtime()
         instance = this
+        ProtectionState.prefs(this).edit().remove("accessibilityError").apply()
         ProtectionState.record(this, "monitor_connected")
         handler.post(tick)
     }
@@ -60,6 +66,8 @@ class FocusAccessibilityService : AccessibilityService() {
         refresh()
     }
     fun refresh() {
+        if (!connected) return
+        heartbeat = android.os.SystemClock.elapsedRealtime()
         val state = ProtectionState.state(this)
         val period = ProtectionState.period(this, state)
         val interactive = (getSystemService(POWER_SERVICE) as PowerManager).isInteractive
@@ -85,10 +93,10 @@ class FocusAccessibilityService : AccessibilityService() {
             if (alertActive) "Cảnh báo còn ${((30000 - elapsed + 999) / 1000)} giây.\nSau đó nghỉ âm báo 60 giây." else "Ứng dụng này vẫn bị chặn.\nCảnh báo tiếp theo sau ${((90000 - elapsed + 999) / 1000)} giây."
         if (alertActive && !muted && ProtectionState.options(state).optBoolean("sound", true)) {
             try {
-                if (tone == null) tone = ToneGenerator(AudioManager.STREAM_MUSIC, 45)
-                tone?.startTone(ToneGenerator.TONE_PROP_BEEP2, 250)
+                if (alarm == null) alarm = FocusAlarm(this)
+                alarm?.pulse(ProtectionState.options(state).optBoolean("alarmLoud", true), ProtectionState.options(state).optBoolean("vibrate", true))
             } catch (_: Exception) { /* Silent protection still works. */ }
-        } else tone?.stopTone()
+        } else alarm?.stop()
     }
     private fun showOverlay() {
         val padding = (24 * resources.displayMetrics.density).toInt()
@@ -102,7 +110,7 @@ class FocusAccessibilityService : AccessibilityService() {
         panel.addView(heading); panel.addView(description)
         fun button(text: String, action: () -> Unit) { panel.addView(Button(this).apply { this.text = text; setOnClickListener { action() } }) }
         button("Quay về màn hình chính") { performGlobalAction(GLOBAL_ACTION_HOME); foreground = ""; clearOverlay() }
-        button("Tắt âm báo lần này") { muted = true; tone?.stopTone(); ProtectionState.record(this, "mute", foreground) }
+        button("Tắt âm báo lần này") { muted = true; alarm?.stop(); ProtectionState.record(this, "mute", foreground) }
         button("Gọi điện / khẩn cấp") {
             foreground = ""; clearOverlay()
             try { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) { performGlobalAction(GLOBAL_ACTION_HOME) }
@@ -124,13 +132,25 @@ class FocusAccessibilityService : AccessibilityService() {
         catch (e: Exception) { ProtectionState.prefs(this).edit().putString("error", "Không hiện được màn hình bảo vệ: ${e.javaClass.simpleName}").apply() }
     }
     private fun clearOverlay() {
-        tone?.stopTone(); alertActive = false
+        alarm?.stop(); alertActive = false
         view?.let { try { (getSystemService(WINDOW_SERVICE) as WindowManager).removeView(it) } catch (_: Exception) {} }
         view = null; heading = null; description = null
     }
     override fun onInterrupt() { clearOverlay() }
+    private fun disconnected() {
+        connected = false
+        handler.removeCallbacksAndMessages(null)
+        clearOverlay()
+        alarm?.close(); alarm = null
+        if (instance === this) instance = null
+    }
+    override fun onUnbind(intent: Intent?): Boolean {
+        disconnected()
+        ProtectionState.record(this, "monitor_disconnected")
+        return super.onUnbind(intent)
+    }
     override fun onDestroy() {
-        handler.removeCallbacksAndMessages(null); clearOverlay(); tone?.release(); tone = null
-        instance = null; super.onDestroy()
+        disconnected()
+        super.onDestroy()
     }
 }

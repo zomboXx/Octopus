@@ -20,7 +20,7 @@ def run(*parts, data=None):
     return subprocess.run([adb, '-s', 'emulator-5554', *parts], input=data,
                           capture_output=True, check=True, timeout=30).stdout
 
-assert 'Brain10_API_33' in run('emu', 'avd', 'name').decode()
+assert 'Octopus_API_33' in run('emu', 'avd', 'name').decode()
 run('shell', 'am', 'force-stop', pkg)
 backup = root / f'.android-dev/pre-wellbeing-{time.time_ns()}.tar'
 backup.parent.mkdir(exist_ok=True)

@@ -15,7 +15,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 def adb(*args, check=True):
     return subprocess.run([ADB, '-s', 'emulator-5554', *args], capture_output=True, timeout=15, check=check)
 
-assert b'Brain10_API_33' in adb('emu', 'avd', 'name').stdout, 'Dedicated AVD required'
+assert b'Octopus_API_33' in adb('emu', 'avd', 'name').stdout, 'Dedicated AVD required'
 
 class Health(http.server.BaseHTTPRequestHandler):
     def do_GET(self):

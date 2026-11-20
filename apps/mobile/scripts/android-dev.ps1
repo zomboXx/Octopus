@@ -6,7 +6,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $mobileRoot = Split-Path -Parent $PSScriptRoot
-$avdName = 'Brain10_API_33'
+$avdName = 'Octopus_API_33'
 $sdkRoot = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { Join-Path $env:LOCALAPPDATA 'Android/Sdk' }
 $adb = Join-Path $sdkRoot 'platform-tools/adb.exe'
 $emulator = Join-Path $sdkRoot 'emulator/emulator.exe'
@@ -21,13 +21,13 @@ foreach ($jbr in @('D:/Android Studio/jbr', 'C:/Program Files/Android/Android St
 }
 New-Item -ItemType Directory -Force -Path $runtimeRoot | Out-Null
 
-function Assert-BrainDevice {
+function Assert-OctopusDevice {
   $name = & $adb -s $Serial emu avd name 2>$null
   if ($LASTEXITCODE -ne 0 -or $name -notcontains $avdName) {
     throw "Device $Serial is not the dedicated Octopus AVD. Refusing to modify another device."
   }
 }
-function Start-BrainDevice {
+function Start-OctopusDevice {
   $available = & $emulator -list-avds
   if ($available -notcontains $avdName) {
     $image = Join-Path $sdkRoot 'system-images/android-33/google_apis/x86_64/system.img'
@@ -37,7 +37,7 @@ function Start-BrainDevice {
   }
   $devices = & $adb devices
   if (!($devices -match "^$Serial\s+(device|offline)")) {
-    Start-Process -FilePath $emulator -ArgumentList '-avd',$avdName,'-port','5554','-gpu','host','-memory','2048','-no-audio','-no-boot-anim' -WindowStyle Normal -RedirectStandardOutput (Join-Path $runtimeRoot 'emulator.log') -RedirectStandardError (Join-Path $runtimeRoot 'emulator-error.log') | Out-Null
+    Start-Process -FilePath $emulator -ArgumentList '-avd',$avdName,'-port','5554','-gpu','host','-memory','2048','-no-audio','-no-boot-anim' -WindowStyle Hidden -RedirectStandardOutput (Join-Path $runtimeRoot 'emulator.log') -RedirectStandardError (Join-Path $runtimeRoot 'emulator-error.log') | Out-Null
   }
   Write-Host 'Waiting for Android to finish booting...'
   $deadline = (Get-Date).AddMinutes(4)
@@ -47,7 +47,7 @@ function Start-BrainDevice {
     if ((Get-Date) -gt $deadline) { throw 'Emulator boot timed out. See .android-dev/emulator-error.log.' }
     Start-Sleep -Seconds 2
   } while ($true)
-  Assert-BrainDevice
+  Assert-OctopusDevice
   & $adb -s $Serial shell cmd alarm set-timezone Asia/Ho_Chi_Minh | Out-Null
 }
 
@@ -74,13 +74,13 @@ function Enable-LocalAI {
 Push-Location $mobileRoot
 try {
   switch ($Action) {
-    'Stop' { Assert-BrainDevice; & $adb -s $Serial emu kill }
-    'Logs' { Assert-BrainDevice; & $adb -s $Serial logcat 'flutter:V' 'AndroidRuntime:E' '*:S' }
-    'Setup' { Start-BrainDevice; Write-Host "Ready: $avdName ($Serial). Also available in Android Studio Device Manager." }
-    'Start' { Start-BrainDevice }
-    'Run' { Start-BrainDevice; $aiArgs = @(Enable-LocalAI); & flutter run -d $Serial -t lib/main.dart @aiArgs }
+    'Stop' { Assert-OctopusDevice; & $adb -s $Serial emu kill }
+    'Logs' { Assert-OctopusDevice; & $adb -s $Serial logcat 'flutter:V' 'AndroidRuntime:E' '*:S' }
+    'Setup' { Start-OctopusDevice; Write-Host "Ready: $avdName ($Serial). Also available in Android Studio Device Manager." }
+    'Start' { Start-OctopusDevice }
+    'Run' { Start-OctopusDevice; $aiArgs = @(Enable-LocalAI); & flutter run -d $Serial -t lib/main.dart @aiArgs }
     'Test' {
-      Start-BrainDevice
+      Start-OctopusDevice
       $aiArgs = @(Enable-LocalAI)
       $python = (Get-Command python.exe -ErrorAction Stop).Source
       $driver = Start-Process -FilePath $python -ArgumentList 'scripts/picker-automation.py','--serial',$Serial,'--grant-usage','--grant-guard' -WorkingDirectory $mobileRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $runtimeRoot 'picker.log') -RedirectStandardError (Join-Path $runtimeRoot 'picker-error.log') -PassThru

@@ -4,7 +4,7 @@ $mobileRoot=Split-Path -Parent $PSScriptRoot
 $env:JAVA_HOME='D:/Android Studio/jbr'
 $adb=Join-Path $env:LOCALAPPDATA 'Android/Sdk/platform-tools/adb.exe'
 $name=& $adb -s emulator-5554 emu avd name
-if ($name -notcontains 'Brain10_API_33') { throw 'Dedicated AVD required' }
+if ($name -notcontains 'Octopus_API_33') { throw 'Dedicated AVD required' }
 & $adb -s emulator-5554 shell run-as vn.octopus.mobile rm -f code_cache/octopus-guard-phase code_cache/octopus-guard-ack 2>$null
 Push-Location $mobileRoot
 try {
