@@ -4,6 +4,7 @@ import {defaultPreferences,makePlanningRequest,makeAutomaticDraft,convertDraft,v
 import {reminderBoundary} from './wellbeing.js';
 import {periods,vietnamDay,addDays,weekStart,startTime,sessionStatus,calendarWeeks} from './calendar.js';
 import {publicPlanningUrl} from './planning-endpoint.js';
+import {formatVnd,loadPlanCatalog} from '../plan-catalog.js';
 import {readDemoState,mergeDemoState,sameState} from './demo-state.js?v=0.6.7';
 // Starter AI calls use a server-only provider key and durable monthly quota.
 const planningUrl = publicPlanningUrl || (location.hostname === 'zomboxx.github.io' ? '' : '/api/plans');
@@ -269,7 +270,27 @@ async function markCheckin(rest){const circle=currentCircle();if(!circle)return;
 async function showPlans(){
   showModal('Gói Octopus','<p class="modal-copy" role="status">Đang đọc giá công bố…</p><div data-plan-catalog></div>');
   const target=modal.querySelector('[data-plan-catalog]');
-  try{const response=await fetch(new URL('../plans.json',import.meta.url));if(!response.ok)throw Error();const plans=await response.json();if(!Array.isArray(plans)||!target.isConnected)return;target.previousElementSibling.textContent='Giá đồng bộ từ website Octopus';target.innerHTML=plans.map(plan=>`<section class="card"><span class="tag">${esc(plan.audience || 'Miễn phí')}</span><h3>${esc(plan.name)}</h3><strong class="plan-price">${plan.monthlyAmount===0?'Miễn phí':`${esc(plan.pricePrefix || '')} ${Number(plan.monthlyAmount).toLocaleString('vi-VN')} đ${esc(plan.priceUnit || '/tháng')}`}</strong><p class="modal-copy">${esc(plan.description)}</p><ul class="limit-list">${plan.features.map(feature=>`<li>${esc(feature)}</li>`).join('')}</ul>${plan.monthlyAmount?'<p class="notice">Đăng ký và thanh toán trong app sẽ mở sau.</p>':'<button class="button full" data-action="close">Tiếp tục với Starter</button>'}</section>`).join('');}catch{if(target.isConnected)target.previousElementSibling.textContent='Chưa tải được giá. Hãy thử lại khi có mạng.';}
+  const heading=target.previousElementSibling;
+  try {
+    const plans=await loadPlanCatalog(import.meta.url,'../plans.json');
+    if (!Array.isArray(plans)) throw new Error('Invalid plan catalog');
+    if (!target.isConnected) return;
+    heading.textContent='Giá đồng bộ từ website Octopus';
+    target.innerHTML=plans.map(plan=>{
+      const price=plan.monthlyAmount===0
+        ? 'Miễn phí'
+        : [plan.pricePrefix,formatVnd(plan.monthlyAmount),plan.priceUnit].filter(Boolean).join(' ');
+      const features=plan.features.map(feature=>`<li>${esc(feature)}</li>`).join('');
+      const action=plan.monthlyAmount
+        ? '<p class="notice">Gói dự kiến · Chưa mở đăng ký và thanh toán.</p>'
+        : '<button class="button full" data-action="close">Tiếp tục với Starter</button>';
+      return `<section class="card"><span class="tag">${esc(plan.audience || 'Miễn phí')}</span>
+        <h3>${esc(plan.name)}</h3><strong class="plan-price">${esc(price)}</strong>
+        <p class="modal-copy">${esc(plan.description)}</p><ul class="limit-list">${features}</ul>${action}</section>`;
+    }).join('');
+  } catch {
+    if (target.isConnected) heading.textContent='Chưa tải được giá. Hãy thử lại khi có mạng.';
+  }
 }
 
 function renderHome() {
