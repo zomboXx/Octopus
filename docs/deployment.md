@@ -10,7 +10,7 @@ Repo đã có trang giới thiệu tại `/` và bản trải nghiệm tại `/t
 
 Web gửi yêu cầu đến `/api/plans` và Android dùng `/v1/plans` tại [máy chủ Octopus](https://octopus-planning.beadedeasel2.chatgpt.site/api/plans). GitHub Pages lấy URL qua biến `OCTOPUS_PUBLIC_PLANNING_URL` của workflow. Khi build APK, truyền origin của máy chủ qua `OCTOPUS_API_URL`. APK và web chỉ gửi thông tin cần cho việc lập lịch và dùng mã yêu cầu để giữ nguyên lượt khi gửi lại.
 
-Máy chủ Octopus dùng [Planning Gateway](../apps/api/planning-gateway.mjs), chạy trên Sites và chuyển yêu cầu tới dịch vụ AI có sẵn. Thiết lập `OCTOPUS_UPSTREAM_URL` và `OCTOPUS_UPSTREAM_REQUEST_HEADER` trong biến môi trường của Worker. Kho giữ hạn mức Starter nằm phía máy chủ. Kiểm tra `GET /api/plans` trước buổi demo. Lần gọi đầu sau thời gian nghỉ có thể phản hồi chậm.
+Máy chủ Octopus dùng [Planning Gateway](../apps/api/planning-gateway.mjs), chạy trên Sites và chuyển yêu cầu tới dịch vụ AI có sẵn. Thiết lập `OCTOPUS_UPSTREAM_URL` và `OCTOPUS_UPSTREAM_REQUEST_HEADER` trong biến môi trường của Worker. Đặt `OCTOPUS_UPSTREAM_LABEL` khi cần thống nhất tên sản phẩm trong kết quả AI. Kho giữ hạn mức Starter nằm phía máy chủ. Kiểm tra `GET /api/plans` trước buổi demo. Lần gọi đầu sau thời gian nghỉ có thể phản hồi chậm.
 
 ## Cấu hình Vercel cho môi trường beta riêng
 

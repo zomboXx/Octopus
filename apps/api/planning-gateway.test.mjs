@@ -83,3 +83,23 @@ test('preserves a request on same-origin redirects and rejects cross-origin forw
     ['https://planner.example.test/v1/plans', authorization, '{}'],
   ]);
 });
+
+test('uses Octopus in model responses and returns an actionable scheduling error', async () => {
+  const request = () => new Request(base + '/api/plans', {
+    method: 'POST',
+    headers: {Authorization: authorization, 'X-Octopus-Request-Id': requestId},
+    body: '{}',
+  });
+  const answered = createPlanningGateway({fetchUpstream: () => Response.json({
+    status: 'needs_clarification', reason: 'out_of_scope', summary: 'Example Planner giúp bạn lập lịch học.',
+  })});
+  const response = await answered(request(), {...env, OCTOPUS_UPSTREAM_LABEL: 'Example Planner'});
+  assert.equal((await response.json()).summary, 'Octopus giúp bạn lập lịch học.');
+
+  const failed = createPlanningGateway({fetchUpstream: () => Response.json({
+    error: 'AI chưa xác định được hạn hoàn thành hợp lệ.',
+  }, {status: 502})});
+  const error = await failed(request(), env);
+  assert.equal(error.status, 502);
+  assert.match((await error.json()).error, /chọn hạn hoàn thành/);
+});

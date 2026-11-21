@@ -126,7 +126,13 @@ export function createPlanningGateway({fetchUpstream = (url, options) => fetch(u
       });
       if (!response.ok) {
         if (response.status >= 500) console.error('Planning upstream returned', response.status);
-        const error = requestErrors[response.status] ?? 'Dịch vụ lập lịch đang gián đoạn. Hãy thử lại sau.';
+        let error = requestErrors[response.status] ?? 'Dịch vụ lập lịch đang gián đoạn. Hãy thử lại sau.';
+        if (response.status === 502) {
+          const failure = await response.json().catch(() => null);
+          if (/hạn hoàn thành|ngày kiểm tra/i.test(String(failure?.error ?? ''))) {
+            error = 'AI chưa xếp được lịch phù hợp. Hãy chọn hạn hoàn thành và kiểm tra khung giờ học rồi thử lại.';
+          }
+        }
         return json({error}, response.status < 500 ? response.status : 502,
                     {'X-Octopus-Upstream': String(response.status)});
       }
@@ -134,6 +140,10 @@ export function createPlanningGateway({fetchUpstream = (url, options) => fetch(u
       if (request.method === 'GET' && !token) {
         const {configured, accessRequired, starterLimit, planningVersion} = data;
         return json({configured, accessRequired, starterLimit, planningVersion});
+      }
+      const label = env.OCTOPUS_UPSTREAM_LABEL?.trim();
+      if (label && /^[a-z0-9 -]+$/i.test(label)) {
+        return json(JSON.parse(JSON.stringify(data).replace(new RegExp(label, 'gi'), 'Octopus')));
       }
       return json(data);
     } catch (error) {
