@@ -44,8 +44,10 @@ test('multiple circles keep separate daily check-ins and preserve streaks across
 });
 test('profile uses the same public VND catalog and discloses unavailable checkout',async({page})=>{
   await enter(page);await page.getByRole('button',{name:'Hồ sơ và widget',exact:true}).click();await page.getByRole('button',{name:'Gói Octopus',exact:true}).click();
-  await expect(page.getByRole('dialog')).toContainText('39.000 đ/tháng');await expect(page.getByRole('dialog')).toContainText('29.000 đ/ người dùng / tháng');
-  await expect(page.getByRole('dialog')).toContainText('Đăng ký và thanh toán trong app sẽ mở sau.');
+  const dialog=page.getByRole('dialog');
+  await expect(dialog.locator('.plan-price').nth(1)).toHaveText(/39\.000\s*₫\s*\/tháng/);
+  await expect(dialog.locator('.plan-price').nth(2)).toHaveText(/29\.000\s*₫\s*\/ người dùng \/ tháng/);
+  await expect(dialog.getByText('Gói dự kiến · Chưa mở đăng ký và thanh toán.')).toHaveCount(2);
 });
 test('selected recipients require a choice and local group history follows that choice',async({page})=>{
   await enter(page);await page.getByRole('button',{name:'Nhóm',exact:true}).click();
