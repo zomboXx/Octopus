@@ -54,16 +54,18 @@ function createPlanCard(plan) {
   }
   card.append(features);
 
-  const action = document.createElement(plan.id === 'free' ? 'a' : 'p');
   if (plan.id === 'free') {
+    const action = document.createElement('a');
     action.className = 'button';
     action.href = './try/';
     action.textContent = 'Thử Starter';
+    card.append(action);
   } else {
-    action.className = 'plan-availability';
-    action.textContent = 'Gói dự kiến · Chưa mở đăng ký';
+    const availability = document.createElement('p');
+    availability.className = 'plan-availability';
+    availability.textContent = 'Gói dự kiến · Chưa mở đăng ký';
+    heading.append(availability);
   }
-  card.append(action);
 
   return card;
 }

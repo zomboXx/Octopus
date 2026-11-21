@@ -77,6 +77,7 @@
 .feedback-group {
   gap: 16px;
   padding: 4px 16px 12px 0;
+  align-items: flex-start;
 }
 
 .feedback-group[aria-hidden="true"] {
@@ -193,7 +194,7 @@
   }
 }
 
-@media (prefers-reduced-motion: no-preference) {
+@media (min-width: 760px) and (prefers-reduced-motion: no-preference) {
   .feedback-viewport[data-loop] {
     overflow: clip;
     touch-action: pan-y;
@@ -208,6 +209,10 @@
     animation: feedback-loop var(--feedback-duration) linear infinite;
   }
 
+  .feedback-viewport[data-loop]:hover .feedback-track,
+  .feedback-viewport[data-loop]:focus-within .feedback-track {
+    animation-play-state: paused;
+  }
 }
 
 @keyframes feedback-loop {
