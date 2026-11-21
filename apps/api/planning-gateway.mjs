@@ -1,3 +1,5 @@
+import {handleWebAnalytics} from './web-analytics.mjs';
+
 const allowedOrigin = 'https://zomboxx.github.io';
 const maxBytes = 100_000;
 const requestIdHeader = 'X-Octopus-Request-Id';
@@ -5,7 +7,8 @@ const guestPattern = /^Guest [a-f0-9]{64}$/;
 const requestIdPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const redirects = new Set([301, 302, 303, 307, 308]);
 
-async function readBody(request) {
+async function readBody(request, limit = maxBytes) {
+  if (Number(request.headers.get('Content-Length')) > limit) throw new RangeError('Request body exceeds the limit');
   const reader = request.body?.getReader();
   if (!reader) return '';
   const decoder = new TextDecoder();
@@ -16,7 +19,7 @@ async function readBody(request) {
       const {value, done} = await reader.read();
       if (done) return body + decoder.decode();
       bytes += value.byteLength;
-      if (bytes > maxBytes) throw new RangeError('Request body exceeds the limit');
+      if (bytes > limit) throw new RangeError('Request body exceeds the limit');
       body += decoder.decode(value, {stream: true});
     }
   } finally {
@@ -64,6 +67,9 @@ export function createPlanningGateway({fetchUpstream = (url, options) => fetch(u
     };
     const json = (data, status = 200, details = {}) =>
       Response.json(data, {status, headers: {...headers, ...details}});
+    if (path === '/api/web-events' || path === '/api/web-analytics') {
+      return handleWebAnalytics(request, env, {origin: allowedOrigin, readBody, json, headers});
+    }
     if (path !== '/api/plans' && path !== '/v1/plans') return json({error: 'Không có đường dẫn này.'}, 404);
     if (origin && origin !== allowedOrigin) return json({error: 'Trang này chưa được cấp quyền gọi API.'}, 403);
     if (request.method === 'OPTIONS') {
@@ -104,9 +110,6 @@ export function createPlanningGateway({fetchUpstream = (url, options) => fetch(u
     if (clientIp && request.method === 'POST') upstreamHeaders.set('X-Forwarded-For', clientIp);
     let body;
     if (request.method === 'POST') {
-      if (Number(request.headers.get('Content-Length')) > maxBytes) {
-        return json({error: 'Yêu cầu quá lớn.'}, 413);
-      }
       try {
         body = await readBody(request);
         JSON.parse(body);

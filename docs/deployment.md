@@ -12,6 +12,12 @@ Web gửi yêu cầu đến `/api/plans` và Android dùng `/v1/plans` tại [m�
 
 Máy chủ Octopus dùng [Planning Gateway](../apps/api/planning-gateway.mjs), chạy trên Sites và chuyển yêu cầu tới dịch vụ AI có sẵn. Thiết lập `OCTOPUS_UPSTREAM_URL` và `OCTOPUS_UPSTREAM_REQUEST_HEADER` trong biến môi trường của Worker. Đặt `OCTOPUS_UPSTREAM_LABEL` khi cần thống nhất tên sản phẩm trong kết quả AI. Kho giữ hạn mức Starter nằm phía máy chủ. Kiểm tra `GET /api/plans` trước buổi demo. Lần gọi đầu sau thời gian nghỉ có thể phản hồi chậm.
 
+## Thống kê website
+
+Trang giới thiệu và `/try/` dùng cùng lựa chọn đồng ý trên trình duyệt. Khi bật, website gửi sự kiện phiên, thời gian hoạt động trong demo và thao tác xem hoặc tải APK tới `POST /api/web-events` trên API Octopus. Hai trang chia sẻ mã phiên khi mở trong cùng một tab. Khi tắt, website dừng gửi sự kiện.
+
+Worker dùng binding `DB` và [migration thống kê](../apps/api/drizzle/0000_web_analytics.sql). Dữ liệu gồm mã ngẫu nhiên, loại sự kiện và thời lượng. Báo cáo giới hạn 90 ngày theo múi giờ Việt Nam. `GET /api/web-analytics` trả số liệu tổng hợp theo ngày cho tài khoản chủ Site sau khi đăng nhập. Đặt ID tài khoản này vào biến runtime `OCTOPUS_ANALYTICS_OWNER_ID`. Có thể truyền `from` và `to` theo dạng YYYY-MM-DD.
+
 ## Cấu hình Vercel cho môi trường beta riêng
 
 1. Import repo Octopus, đặt **Root Directory** thành `apps/website` và chọn **Framework Preset** là **Other**. Repo đã khai báo thư mục đầu ra `dist` và rewrite API. [Cấu hình trong repo](../apps/website/vercel.json)
