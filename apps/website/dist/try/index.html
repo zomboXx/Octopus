@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="./wellbeing.css">
   <link rel="stylesheet" href="./parity.css?v=0.6.8-journal-2">
   <script src="./demo.js?v=0.6.8-journal-2" type="module"></script>
+  <link rel="stylesheet" href="../analytics.css">
 </head>
 <body>
   <header class="web-header"><a href="../" class="web-brand" aria-label="octopus — trang giới thiệu"><span class="brand-lockup"><img src="../assets/octopus-logo.png" alt="" width="32" height="32"> Octopus</span><span>/ trải nghiệm thử</span></a><a href="../" class="back-site">← Trang giới thiệu</a></header>
@@ -42,5 +43,15 @@
   </main>
   <dialog id="modal" aria-labelledby="modal-title"><div id="modal-content"></div></dialog>
   <noscript>Bật JavaScript để trải nghiệm giao diện tương tác. <a href="../">Về trang giới thiệu</a>.</noscript>
+<details class="analytics-choice" data-analytics-page="demo">
+  <summary>Thống kê truy cập</summary>
+  <p>Khi bạn đồng ý, Octopus ghi mã phiên ngẫu nhiên, thời gian hoạt động trong bản thử và thao tác xem hoặc tải APK. Báo cáo giữ dữ liệu trong 90 ngày.</p>
+  <div class="analytics-actions">
+    <button type="button" data-allow>Cho phép thống kê</button>
+    <button type="button" data-deny>Từ chối</button>
+  </div>
+  <p data-status role="status">Đang tắt cho đến khi bạn đồng ý.</p>
+</details>
+<script type="module" src="../analytics.js"></script>
 </body>
 </html>

@@ -1,0 +1,128 @@
+.plans-section {
+  background: #eef3ff;
+}
+
+.plans-head {
+  max-width: 580px;
+  margin: 0 auto 36px;
+  text-align: center;
+}
+
+.plans-head h2 {
+  margin: 0 0 12px;
+}
+
+.plans-head p, .plan-description {
+  color: #53637f;
+}
+
+.plan-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(16px, 2.4vw, 28px);
+  border: 1px solid #dce6fa;
+  border-radius: 24px;
+  background: white;
+}
+
+.plan-highlight {
+  border-color: #3269cb;
+  box-shadow: 0 9px 25px #2463eb15;
+}
+
+.plan-card header {
+  min-height: 4.3em;
+}
+
+.plan-card h3 {
+  margin: 0 0 4px;
+  font-size: clamp(18px, 1.8vw, 23px);
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.plan-card .plan-audience {
+  color: #53637f;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 6px;
+  margin: 8px 0 16px;
+  color: var(--blue);
+  line-height: 1.25;
+}
+
+.plan-price strong {
+  font-size: clamp(25px, 3vw, 36px);
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+
+.plan-price-prefix, .plan-price-unit {
+  color: #53637f;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.plan-description {
+  margin-bottom: 16px;
+}
+
+.plan-card h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.plan-card ul {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-card li {
+  position: relative;
+  padding-inline-start: 19px;
+  margin-bottom: 8px;
+  line-height: 1.55;
+}
+
+.plan-card li::before {
+  content: "";
+  position: absolute;
+  inset: 0.35em auto auto 2px;
+  width: 5px;
+  height: 9px;
+  border: solid #2463eb;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.plan-card .button {
+  margin-top: auto;
+}
+
+@media (max-width: 760px) {
+  .plan-list {
+    max-width: 500px;
+    margin-inline: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .plan-card header {
+    min-height: 0;
+  }
+}
+
+.plan-availability{margin-top:auto;padding-top:16px;color:var(--muted);font-weight:650}

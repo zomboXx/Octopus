@@ -1,0 +1,4 @@
+.analytics-choice{width:calc(100% - 44px);max-width:760px;margin:24px auto 36px;border:1px solid #e2e9f5;border-radius:14px;padding:14px 18px;background:#f7f9ff;color:#182742;font-size:14px}
+.analytics-choice summary{font-weight:750;cursor:pointer}.analytics-choice p{margin:8px 0;line-height:1.55}
+.analytics-actions{display:flex;flex-wrap:wrap;gap:8px}.analytics-actions button{padding:8px 14px;border:1px solid #c7d9fa;border-radius:8px;background:#fff;color:#004ac6;font:inherit;cursor:pointer}
+.analytics-actions button:focus-visible{outline:3px solid #80aaff;outline-offset:2px}
